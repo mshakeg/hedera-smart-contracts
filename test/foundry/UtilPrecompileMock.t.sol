@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import './utils/UtilUtils.sol';
+import '../../contracts/utils/UtilUtils.sol';
 
 contract UtilPrecompileMockTest is UtilUtils {
 

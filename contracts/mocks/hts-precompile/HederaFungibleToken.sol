@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import 'openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
-import '../../../../contracts/hts-precompile/HederaResponseCodes.sol';
-import '../../../../contracts/hts-precompile/IHederaTokenService.sol';
+import '../../../contracts/hts-precompile/HederaResponseCodes.sol';
+import '../../../contracts/hts-precompile/IHederaTokenService.sol';
 import './HtsPrecompileMock.sol';
-import '../../../../src/libraries/Constants.sol';
+import '../../../src/libraries/Constants.sol';
 
 contract HederaFungibleToken is ERC20, Constants {
     error HtsPrecompileError(int64 responseCode);

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-import '../../../contracts/hts-precompile/IHederaTokenService.sol';
-import '../../../contracts/hts-precompile/HederaResponseCodes.sol';
+import '../../contracts/hts-precompile/IHederaTokenService.sol';
+import '../../contracts/hts-precompile/HederaResponseCodes.sol';
 
 import '../mocks/hts-precompile/HederaFungibleToken.sol';
 

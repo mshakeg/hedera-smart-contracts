@@ -3,13 +3,13 @@ pragma solidity ^0.8.9;
 
 import 'forge-std/console.sol';
 
-import '../../../../contracts/hts-precompile/HederaResponseCodes.sol';
-import '../../../../contracts/hts-precompile/IHederaTokenService.sol';
-import '../../../../contracts/hts-precompile/KeyHelper.sol';
+import '../../../contracts/hts-precompile/HederaResponseCodes.sol';
+import '../../../contracts/hts-precompile/IHederaTokenService.sol';
+import '../../../contracts/hts-precompile/KeyHelper.sol';
 import './HederaFungibleToken.sol';
 import './HederaNonFungibleToken.sol';
-import '../../../../src/NoDelegateCall.sol';
-import '../../../../src/libraries/Constants.sol';
+import '../../../src/NoDelegateCall.sol';
+import '../../../src/libraries/Constants.sol';
 
 contract HtsPrecompileMock is NoDelegateCall, IHederaTokenService, KeyHelper {
 
