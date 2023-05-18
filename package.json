@@ -20,7 +20,8 @@
     "forge:build": "forge build",
     "forge:test": "forge test",
     "forge:coverage": "forge coverage",
-    "forge:coverage:report": "forge coverage --report lcov"
+    "forge:coverage:report": "forge coverage --report lcov",
+    "forge:coverage:html": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"
   },
   "devDependencies": {
     "@hashgraph/hedera-local": "^2.8.0",
