@@ -10,4 +10,11 @@ interface IHtsPrecompileMock is IHederaTokenService {
         bool value;
     }
 
+    // this struct avoids duplicating common NFT data, in particular IHederaTokenService.NonFungibleTokenInfo.tokenInfo
+    struct PartialNonFungibleTokenInfo {
+        address ownerId;
+        int64 creationTime;
+        bytes metadata;
+        address spenderId;
+    }
 }
