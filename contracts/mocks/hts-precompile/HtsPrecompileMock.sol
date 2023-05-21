@@ -365,105 +365,83 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         /// @dev success is initialised to true such that the sequence of any of the validation functions below can be easily rearranged
         ///      the rearrangement of the functions may be done to more closely align the response codes with the actual response codes returned by Hedera
         success = true;
-
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
         (bool validKey, bool noKey) = _hasAdminKeySig(token);
         (success, responseCode) = success ? Validation._validateAdminKey(validKey, noKey) : (success, responseCode);
-
-        return (success, responseCode);
-
     }
 
     /// @dev handles precheck logic for both freeze and unfreeze
     function _precheckFreezeToken(address sender, address token, address account) internal view returns (bool success, int64 responseCode) {
-
         success = true;
-
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
         (bool validKey, bool noKey) = _hasFreezeKeySig(token);
         (success, responseCode) = success ? Validation._validateFreezeKey(validKey, noKey) : (success, responseCode);
-
-        return (success, responseCode);
-
     }
 
     /// @dev handles precheck logic for both pause and unpause
     function _precheckPauseToken(address sender, address token) internal view returns (bool success, int64 responseCode) {
-
         success = true;
-
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
         (bool validKey, bool noKey) = _hasPauseKeySig(token);
         (success, responseCode) = success ? Validation._validatePauseKey(validKey, noKey) : (success, responseCode);
-
-        return (success, responseCode);
-
     }
 
     /// @dev handles precheck logic for both kyc grant and revoke
     function _precheckKyc(address sender, address token, address account) internal view returns (bool success, int64 responseCode) {
-
         success = true;
-
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
-        if (_kyc[token][account].value) { // if account already has KYC approved return SUCCESS
-            return (true, HederaResponseCodes.SUCCESS);
-        }
-
-        (bool validKey, bool noKey) = _hasKycKeySig(token);
-        (success, responseCode) = success ? Validation._validateKycKey(validKey, noKey) : (success, responseCode);
-
-        return (success, responseCode);
-
+        (success, responseCode) = success ? _validateKycKey(token) : (success, responseCode);
     }
 
     function _precheckUpdateTokenExpiryInfo(address sender, address token, Expiry memory expiryInfo) internal view returns (bool success, int64 responseCode) {
-
         success = true;
-
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
-        (bool validKey, bool noKey) = _hasAdminKeySig(token);
-        (success, responseCode) = success ? Validation._validateAdminKey(validKey, noKey) : (success, responseCode);
-
+        (success, responseCode) = success ? _validateAdminKey(token) : (success, responseCode);
         // TODO: validate expiryInfo; move validation into common Validation contract that exposes validation functions
-
-        return (success, responseCode);
-
     }
 
     function _precheckUpdateTokenInfo(address sender, address token, HederaToken memory tokenInfo) internal view returns (bool success, int64 responseCode) {
-
         success = true;
-
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
-        (bool validKey, bool noKey) = _hasAdminKeySig(token);
-        (success, responseCode) = success ? Validation._validateAdminKey(validKey, noKey) : (success, responseCode);
-
+        (success, responseCode) = success ? _validateAdminKey(token) : (success, responseCode);
         // TODO: validate tokenInfo; move validation into common Validation contract that exposes validation functions
-
-        return (success, responseCode);
-
     }
 
     function _precheckUpdateTokenKeys(address sender, address token, TokenKey[] memory keys) internal view returns (bool success, int64 responseCode) {
-
         success = true;
-
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
-        (bool validKey, bool noKey) = _hasAdminKeySig(token);
-        (success, responseCode) = success ? Validation._validateAdminKey(validKey, noKey) : (success, responseCode);
-
+        (success, responseCode) = success ? _validateAdminKey(token) : (success, responseCode);
         // TODO: validate keys; move validation into common Validation contract that exposes validation functions
+    }
 
-        return (success, responseCode);
+    function _validateAdminKey(address token) internal view returns (bool success, int64 responseCode) {
+        (bool validKey, bool noKey) = _hasAdminKeySig(token);
+        (success, responseCode) = Validation._validateAdminKey(validKey, noKey);
+    }
 
+    function _validateKycKey(address token) internal view returns (bool success, int64 responseCode) {
+        (bool validKey, bool noKey) = _hasKycKeySig(token);
+        (success, responseCode) = Validation._validateKycKey(validKey, noKey);
+    }
+
+    function _validateSupplyKey(address token) internal view returns (bool success, int64 responseCode) {
+        (bool validKey, bool noKey) = _hasSupplyKeySig(token);
+        (success, responseCode) = Validation._validateSupplyKey(validKey, noKey);
+    }
+
+    function _validateFreezeKey(address token) internal view returns (bool success, int64 responseCode) {
+        (bool validKey, bool noKey) = _hasFreezeKeySig(token);
+        (success, responseCode) = Validation._validateFreezeKey(validKey, noKey);
+    }
+
+    function _validateTreasuryKey(address token) internal view returns (bool success, int64 responseCode) {
+        (bool validKey, bool noKey) = _hasTreasurySig(token);
+        (success, responseCode) = Validation._validateTreasuryKey(validKey, noKey);
+    }
+
+    function _validateWipeKey(address token) internal view returns (bool success, int64 responseCode) {
+        (bool validKey, bool noKey) = _hasWipeKeySig(token);
+        (success, responseCode) = Validation._validateWipeKey(validKey, noKey);
     }
 
     function _validateAccountKyc(address token, address account) internal view returns (bool success, int64 responseCode) {
@@ -507,8 +485,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
 
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
         (success, responseCode) = success ? Validation._validateNftOwnership(token, sender, amountOrSerialNumber, _isNonFungible, _partialNonFungibleTokenInfos) : (success, responseCode);
-
-        return (success, responseCode);
     }
 
     function _precheckSetApprovalForAll(
@@ -532,8 +508,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         (success, responseCode) = success ? _validateAccountUnfrozen(token, operator) : (success, responseCode);
 
         (success, responseCode) = success ? Validation._validateIsNonFungible(token, _isNonFungible) : (success, responseCode);
-
-        return (success, responseCode);
     }
 
     function _precheckMint(
@@ -541,15 +515,9 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         int64 amount,
         bytes[] memory metadata
     ) internal view returns (bool success, int64 responseCode) {
-
         success = true;
-
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
-        (bool validKey, bool noKey) = _hasSupplyKeySig(token);
-        (success, responseCode) = success ? Validation._validateSupplyKey(validKey, noKey) : (success, responseCode);
-
-        return (success, responseCode);
+        (success, responseCode) = success ? _validateSupplyKey(token) : (success, responseCode);
     }
 
     // TODO: implement multiple NFTs being burnt instead of just index 0
@@ -558,17 +526,11 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         int64 amount,
         int64[] memory serialNumbers // since only 1 NFT can be burnt at a time; expect length to be 1
     ) internal view returns (bool success, int64 responseCode) {
-
         success = true;
 
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
-        (bool validKey, bool noKey) = _hasTreasurySig(token);
-        (success, responseCode) = success ? Validation._validateTreasuryKey(validKey, noKey) : (success, responseCode);
-
-        address treasuryKey = _getTreasuryAccount(token);
-        (success, responseCode) = success ? Validation._validateTokenSufficiency(token, treasuryKey, amount, serialNumbers[0], _isFungible, _isNonFungible, _partialNonFungibleTokenInfos) : (success, responseCode);
-
+        (success, responseCode) = success ? _validateTreasuryKey(token) : (success, responseCode);
+        (success, responseCode) = success ? Validation._validateTokenSufficiency(token, _getTreasuryAccount(token), amount, serialNumbers[0], _isFungible, _isNonFungible, _partialNonFungibleTokenInfos) : (success, responseCode);
         return (success, responseCode);
     }
 
@@ -580,18 +542,101 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         int64 amount,
         int64[] memory serialNumbers // since only 1 NFT can be wiped at a time; expect length to be 1
     ) internal view returns (bool success, int64 responseCode) {
-
         success = true;
-
         (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
         (success, responseCode) = success ? Validation._validBurnInput(token, _isFungible, _isNonFungible, amount, serialNumbers) : (success, responseCode);
-
-        (bool validKey, bool noKey) = _hasWipeKeySig(token);
-        (success, responseCode) = success ? Validation._validateWipeKey(validKey, noKey) : (success, responseCode);
-
+        (success, responseCode) = success ? _validateWipeKey(token) : (success, responseCode);
         (success, responseCode) = success ? Validation._validateTokenSufficiency(token, account, amount, serialNumbers[0], _isFungible, _isNonFungible, _partialNonFungibleTokenInfos) : (success, responseCode);
+    }
 
-        return (success, responseCode);
+    function _precheckGetApproved(
+        address token,
+        uint256 serialNumber
+    ) internal view returns (bool success, int64 responseCode) {
+        // TODO: do additional validation that serialNumber exists and is not burnt
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckGetFungibleTokenInfo(address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+        (success, responseCode) = success ? Validation._validateIsFungible(token, _isFungible) : (success, responseCode);
+    }
+
+    function _precheckGetNonFungibleTokenInfo(address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+        (success, responseCode) = success ? Validation._validateIsNonFungible(token, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckGetTokenCustomFees(address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckGetTokenDefaultFreezeStatus(address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckGetTokenDefaultKycStatus(address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckGetTokenExpiryInfo(address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckGetTokenInfo(address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckGetTokenKey(address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckGetTokenType(address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckIsFrozen(address token, address account) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+        (success, responseCode) = success ? _validateFreezeKey(token) : (success, responseCode);
+    }
+
+    function _precheckIsKyc(address token, address account) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+        (success, responseCode) = success ? _validateKycKey(token) : (success, responseCode);
+    }
+
+    function _precheckAllowance(
+        address token,
+        address owner,
+        address spender
+    ) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+    }
+
+    function _precheckAssociateToken(address account, address token) internal view returns (bool success, int64 responseCode) {
+        success = true;
+        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
+
+        // TODO: consider extending Validation#_validateTokenAssociation with TOKEN_ALREADY_ASSOCIATED_TO_ACCOUNT
+        if (success) {
+            if (_association[token][account]) {
+                return (false, HederaResponseCodes.TOKEN_ALREADY_ASSOCIATED_TO_ACCOUNT);
+            }
+        }
+
     }
 
     /// @dev doesPassKyc if KYC is not enabled or if enabled then account is KYCed explicitly or by default
@@ -741,8 +786,14 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         address token,
         uint256 serialNumber
     ) external view returns (int64 responseCode, address approved) {
-        // TODO: do prechecks; that token is valid and serialNumber exists
-        responseCode = HederaResponseCodes.SUCCESS;
+
+        bool success;
+        (success, responseCode) = _precheckGetApproved(token, serialNumber);
+
+        if (!success) {
+            return (responseCode, approved);
+        }
+
         // TODO: abstract logic into _get{Data} function
         approved = HederaNonFungibleToken(token).getApproved(serialNumber);
     }
@@ -750,7 +801,14 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
     function getFungibleTokenInfo(
         address token
     ) external view returns (int64 responseCode, FungibleTokenInfo memory fungibleTokenInfo) {
-        // TODO: call precheck
+
+        bool success;
+        (success, responseCode) = _precheckGetFungibleTokenInfo(token);
+
+        if (!success) {
+            return (responseCode, fungibleTokenInfo);
+        }
+
         // TODO: abstract logic into _get{Data} function
         fungibleTokenInfo = _fungibleTokenInfos[token];
     }
@@ -760,7 +818,12 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         int64 serialNumber
     ) external view returns (int64 responseCode, NonFungibleTokenInfo memory nonFungibleTokenInfo) {
 
-        // TODO: call precheck
+        bool success;
+        (success, responseCode) = _precheckGetNonFungibleTokenInfo(token);
+
+        if (!success) {
+            return (responseCode, nonFungibleTokenInfo);
+        }
 
         // TODO: abstract logic into _get{Data} function
         TokenInfo memory nftTokenInfo = _nftTokenInfos[token];
@@ -776,8 +839,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         nonFungibleTokenInfo.creationTime = partialNonFungibleTokenInfo.creationTime;
         nonFungibleTokenInfo.metadata = partialNonFungibleTokenInfo.metadata;
         nonFungibleTokenInfo.spenderId = partialNonFungibleTokenInfo.spenderId;
-
-        responseCode = HederaResponseCodes.SUCCESS;
     }
 
     function getTokenCustomFees(
@@ -793,10 +854,14 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         )
     {
 
-        // TODO: call precheck
+        bool success;
+        (success, responseCode) = _precheckGetTokenCustomFees(token);
+
+        if (!success) {
+            return (responseCode, fixedFees, fractionalFees, royaltyFees);
+        }
 
         // TODO: abstract logic into _get{Data} function
-        responseCode = HederaResponseCodes.SUCCESS;
         fixedFees = _fungibleTokenInfos[token].tokenInfo.fixedFees;
         fractionalFees = _fungibleTokenInfos[token].tokenInfo.fractionalFees;
         royaltyFees = _fungibleTokenInfos[token].tokenInfo.royaltyFees;
@@ -805,25 +870,39 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
     function getTokenDefaultFreezeStatus(
         address token
     ) external view returns (int64 responseCode, bool defaultFreezeStatus) {
-        // TODO: call precheck
-        responseCode = HederaResponseCodes.SUCCESS;
+
+        bool success;
+        (success, responseCode) = _precheckGetTokenDefaultFreezeStatus(token);
+
+        if (!success) {
+            return (responseCode, defaultFreezeStatus);
+        }
+
         // TODO: abstract logic into _get{Data} function
         // TODO: generalise for both token types
         defaultFreezeStatus = _fungibleTokenInfos[token].tokenInfo.token.freezeDefault;
     }
 
     function getTokenDefaultKycStatus(address token) external view returns (int64 responseCode, bool defaultKycStatus) {
-        // TODO: call precheck
-        responseCode = HederaResponseCodes.SUCCESS;
+
+        bool success;
+        (success, responseCode) = _precheckGetTokenDefaultKycStatus(token);
+
+        if (!success) {
+            return (responseCode, defaultKycStatus);
+        }
         // TODO: abstract logic into _get{Data} function
         // TODO: generalise for both token types
         defaultKycStatus = _fungibleTokenInfos[token].tokenInfo.defaultKycStatus;
     }
 
     function getTokenExpiryInfo(address token) external view returns (int64 responseCode, Expiry memory expiry) {
-        // TODO: abstract logic into _precheck function
-        if (!_isToken(token)) {
-            return (HederaResponseCodes.INVALID_TOKEN_ID, expiry);
+
+        bool success;
+        (success, responseCode) = _precheckGetTokenExpiryInfo(token);
+
+        if (!success) {
+            return (responseCode, expiry);
         }
 
         // TODO: abstract logic into _get{Data} function
@@ -832,14 +911,15 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         } else {
             expiry = _nftTokenInfos[token].token.expiry;
         }
-
-        return (HederaResponseCodes.SUCCESS, expiry);
     }
 
     function getTokenInfo(address token) external view returns (int64 responseCode, TokenInfo memory tokenInfo) {
-        // TODO: abstract logic into _precheck function
-        if (!_isToken(token)) {
-            return (HederaResponseCodes.INVALID_TOKEN_ID, tokenInfo);
+
+        bool success;
+        (success, responseCode) = _precheckGetTokenInfo(token);
+
+        if (!success) {
+            return (responseCode, tokenInfo);
         }
 
         // TODO: abstract logic into _get{Data} function
@@ -853,9 +933,12 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
     }
 
     function getTokenKey(address token, uint keyType) external view returns (int64 responseCode, KeyValue memory key) {
-        // TODO: abstract logic into _precheck function
-        if (!_isToken(token)) {
-            return (HederaResponseCodes.INVALID_TOKEN_ID, key);
+
+        bool success;
+        (success, responseCode) = _precheckGetTokenKey(token);
+
+        if (!success) {
+            return (responseCode, key);
         }
 
         // TODO: abstract logic into _get{Data} function
@@ -871,7 +954,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
     }
 
     function _getTokenKey(IHederaTokenService.TokenKey[] memory tokenKeys, uint keyType) internal view returns (KeyValue memory key) {
-        // TODO: call precheck
         uint256 length = tokenKeys.length;
 
         for (uint256 i = 0; i < length; i++) {
@@ -884,14 +966,17 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
     }
 
     function getTokenType(address token) external view returns (int64 responseCode, int32 tokenType) {
-        // TODO: abstract logic into _precheck function
-        bool isFungibleToken = _isFungible[token];
-        bool isNonFungibleToken = _isNonFungible[token];
-        if (!isFungibleToken && !isNonFungibleToken) {
-            return (HederaResponseCodes.INVALID_TOKEN_ID, tokenType);
+
+        bool success;
+        (success, responseCode) = _precheckGetTokenType(token);
+
+        if (!success) {
+            return (responseCode, tokenType);
         }
 
         // TODO: abstract logic into _get{Data} function
+        bool isFungibleToken = _isFungible[token];
+        bool isNonFungibleToken = _isNonFungible[token];
         tokenType = isFungibleToken ? int32(0) : int32(1);
         return (HederaResponseCodes.SUCCESS, tokenType);
     }
@@ -919,21 +1004,16 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
     ) external view returns (int64 responseCode, bool approved) {}
 
     function isFrozen(address token, address account) public view returns (int64 responseCode, bool frozen) {
-        // TODO: abstract logic into _precheck function
-        bool isFungible = _isFungible[token];
-        bool isNonFungible = _isNonFungible[token];
 
         bool success = true;
-
-        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
-        (bool validKey, bool noKey) = _hasFreezeKeySig(token);
-        (success, responseCode) = success ? Validation._validateFreezeKey(validKey, noKey) : (success, responseCode);
+        _precheckIsFrozen(token, account);
 
         if (!success) {
             return (responseCode, frozen);
         }
 
+        bool isFungible = _isFungible[token];
+        bool isNonFungible = _isNonFungible[token];
         // TODO: abstract logic into _isFrozen function
         bool freezeDefault;
         if (isFungible) {
@@ -953,21 +1033,17 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
     }
 
     function isKyc(address token, address account) public view returns (int64 responseCode, bool kycGranted) {
-        bool isFungible = _isFungible[token];
-        bool isNonFungible = _isNonFungible[token];
 
-        // TODO: abstract logic into _precheck function
-        bool success = true;
-        (success, responseCode) = success ? Validation._validateToken(token, _tokenDeleted, _isFungible, _isNonFungible) : (success, responseCode);
-
-        (bool validKey, bool noKey) = _hasKycKeySig(token);
-        (success, responseCode) = success ? Validation._validateKycKey(validKey, noKey) : (success, responseCode);
+        bool success;
+        (success, responseCode) = _precheckIsKyc(token, account);
 
         if (!success) {
             return (responseCode, kycGranted);
         }
 
         // TODO: abstract logic into _isKyc function
+        bool isFungible = _isFungible[token];
+        bool isNonFungible = _isNonFungible[token];
         bool defaultKycStatus;
         if (isFungible) {
             FungibleTokenInfo memory fungibleTokenInfo = _fungibleTokenInfos[token];
@@ -994,9 +1070,12 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         address owner,
         address spender
     ) public view returns (int64 responseCode, uint256 allowance) {
-        // TODO: abstract logic into _precheck function
-        if (!_isFungible[token]) {
-            return (HederaResponseCodes.INVALID_TOKEN_ID, 0);
+
+        bool success;
+        (success, responseCode) = _precheckAllowance(token, owner, spender);
+
+        if (!success) {
+            return (responseCode, allowance);
         }
 
         // TODO: abstract logic into _allowance function
@@ -1189,13 +1268,12 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
     }
 
     function associateToken(address account, address token) public noDelegateCall returns (int64 responseCode) {
-        // TODO: abstract logic into _precheck function
-        if (!_isFungible[token] && !_isNonFungible[token]) {
-            return HederaResponseCodes.INVALID_TOKEN_ID;
-        }
 
-        if (_association[token][account]) {
-            return HederaResponseCodes.TOKEN_ALREADY_ASSOCIATED_TO_ACCOUNT;
+        bool success;
+        (success, responseCode) = _precheckAssociateToken(account, token);
+
+        if (!success) {
+            return responseCode;
         }
 
         // TODO: abstract logic into _post{Action} function
