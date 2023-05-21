@@ -1409,7 +1409,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         // TODO: abstract logic into _post{Action} function
         _unfrozen[token][account].explicit = true;
         _unfrozen[token][account].value = false;
-
     }
 
     function mintToken(
@@ -1483,7 +1482,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         // TODO: abstract logic into _post{Action} function
         _tokenPaused[token].explicit = true;
         _tokenPaused[token].value = true;
-
     }
 
     function revokeTokenKyc(address token, address account) external noDelegateCall returns (int64 responseCode) {
@@ -1498,8 +1496,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         // TODO: abstract logic into _post{Action} function
         _kyc[token][account].explicit = true;
         _kyc[token][account].value = false;
-        return (HederaResponseCodes.SUCCESS);
-
     }
 
     function setApprovalForAll(
@@ -1532,7 +1528,7 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         bool success;
         (success, responseCode, isRequestFromOwner) = _precheckTransfer(token, spender, from, to, amount);
 
-        if (responseCode != HederaResponseCodes.SUCCESS) {
+        if (!success) {
             return responseCode;
         }
 
@@ -1544,8 +1540,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
             to,
             amount
         );
-
-        return responseCode;
     }
 
     function transferFromNFT(
@@ -1572,7 +1566,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
             to,
             serialNumber
         );
-        return responseCode;
     }
 
     /// TODO implementation is currently identical to transferFromNFT; investigate the differences between the 2 functions
@@ -1601,8 +1594,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
             recipient,
             _serialNumber
         );
-
-        return responseCode;
     }
 
     function transferNFTs(
@@ -1662,8 +1653,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
             recipient,
             _amount
         );
-
-        return responseCode;
     }
 
     function transferTokens(
@@ -1706,7 +1695,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         // TODO: abstract logic into _post{Action} function
         _unfrozen[token][account].explicit = true;
         _unfrozen[token][account].value = true;
-
     }
 
     function unpauseToken(address token) external noDelegateCall returns (int64 responseCode) {
@@ -1721,7 +1709,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         // TODO: abstract logic into _post{Action} function
         _tokenPaused[token].explicit = true;
         _tokenPaused[token].value = false;
-
     }
 
     function updateTokenExpiryInfo(
@@ -1744,7 +1731,6 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         if (_isNonFungible[token]) {
             _setNftTokenExpiry(token, expiryInfo);
         }
-
     }
 
     function updateTokenInfo(
@@ -1821,7 +1807,7 @@ contract HtsPrecompileMock is NoDelegateCall, KeyHelper, IHtsPrecompileMock {
         bool success;
         (success, responseCode) = _precheckWipe(msg.sender, token, account, 0, serialNumbers);
 
-        if (responseCode != HederaResponseCodes.SUCCESS) {
+        if (!success) {
             return responseCode;
         }
 
