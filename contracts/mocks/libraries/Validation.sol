@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 import '../../../contracts/hts-precompile/HederaResponseCodes.sol';
 import '../hts-precompile/HederaFungibleToken.sol';
+import '../hts-precompile/HederaNonFungibleToken.sol';
 import '../interfaces/IHtsPrecompileMock.sol';
 
 library Validation {
@@ -131,6 +132,19 @@ library Validation {
         responseCode = HederaResponseCodes.SUCCESS;
     }
 
+    function _validateWipeKey(bool validKey, bool noKey) internal pure returns (bool success, int64 responseCode) {
+        if (noKey) {
+            return (false, HederaResponseCodes.TOKEN_HAS_NO_WIPE_KEY);
+        }
+
+        if (!validKey) {
+            return (false, HederaResponseCodes.INVALID_WIPE_KEY);
+        }
+
+        success = true;
+        responseCode = HederaResponseCodes.SUCCESS;
+    }
+
     function _validateAccountKyc(bool kycPass) internal pure returns (bool success, int64 responseCode) {
 
         if (!kycPass) {
@@ -203,15 +217,105 @@ library Validation {
         mapping(address => mapping(int64 => IHtsPrecompileMock.PartialNonFungibleTokenInfo)) storage _partialNonFungibleTokenInfos
     ) internal view returns (bool success, int64 responseCode) {
 
+        uint256 amountU256 = uint64(amount);
+        uint256 serialNumberU256 = uint64(serialNumber);
+        return _validateTokenSufficiency(token, owner, amountU256, serialNumberU256, _isFungible, _isNonFungible, _partialNonFungibleTokenInfos);
+    }
+
+    function _validateTokenSufficiency(
+        address token,
+        address owner,
+        uint256 amount,
+        uint256 serialNumber,
+        mapping(address => bool) storage _isFungible,
+        mapping(address => bool) storage _isNonFungible,
+        mapping(address => mapping(int64 => IHtsPrecompileMock.PartialNonFungibleTokenInfo)) storage _partialNonFungibleTokenInfos
+    ) internal view returns (bool success, int64 responseCode) {
+
         if (_isFungible[token]) {
-            uint256 amountU256 = uint64(amount);
-            return _validateFungibleBalance(token, owner, amountU256, _isFungible);
+            return _validateFungibleBalance(token, owner, amount, _isFungible);
         }
 
         if (_isNonFungible[token]) {
-            uint256 serialNumberU256 = uint64(serialNumber);
-            return _validateNftOwnership(token, owner, serialNumberU256, _isNonFungible, _partialNonFungibleTokenInfos);
+            return _validateNftOwnership(token, owner, serialNumber, _isNonFungible, _partialNonFungibleTokenInfos);
         }
+    }
+
+    function _validateFungibleApproval(
+        address token,
+        address spender,
+        address from,
+        uint256 amount,
+        mapping(address => bool) storage _isFungible
+    ) internal view returns (bool success, int64 responseCode) {
+        if (_isFungible[token]) {
+
+            uint256 allowance = HederaFungibleToken(token).allowance(from, spender);
+
+            // TODO: do validation for other allowance response codes such as SPENDER_DOES_NOT_HAVE_ALLOWANCE and MAX_ALLOWANCES_EXCEEDED
+            if (allowance < amount) {
+                return (false, HederaResponseCodes.AMOUNT_EXCEEDS_ALLOWANCE);
+            }
+        }
+
+        success = true;
+        responseCode = HederaResponseCodes.SUCCESS;
+    }
+
+    function _validateNftApproval(
+        address token,
+        address spender,
+        uint256 serialNumber,
+        mapping(address => bool) storage _isNonFungible
+    ) internal view returns (bool success, int64 responseCode) {
+
+        if (_isNonFungible[token]) {
+            bool canSpendToken = HederaNonFungibleToken(token).isApprovedOrOwner(spender, serialNumber);
+            if (!canSpendToken) {
+                return (false, HederaResponseCodes.INSUFFICIENT_ACCOUNT_BALANCE);
+            }
+        }
+
+        success = true;
+        responseCode = HederaResponseCodes.SUCCESS;
+    }
+
+    function _validateApprovalSufficiency(
+        address token,
+        address spender,
+        address from,
+        uint256 amountOrSerialNumber,
+        mapping(address => bool) storage _isFungible,
+        mapping(address => bool) storage _isNonFungible
+    ) internal view returns (bool success, int64 responseCode) {
+
+        if (_isFungible[token]) {
+            return _validateFungibleApproval(token, spender, from, amountOrSerialNumber, _isFungible);
+        }
+
+        if (_isNonFungible[token]) {
+            return _validateNftApproval(token, spender, amountOrSerialNumber, _isNonFungible);
+        }
+    }
+
+    function _validBurnInput(
+        address token,
+        mapping(address => bool) storage _isFungible,
+        mapping(address => bool) storage _isNonFungible,
+        int64 amount,
+        int64[] memory serialNumbers
+    ) internal view returns (bool success, int64 responseCode) {
+
+        if (_isFungible[token] && serialNumbers.length > 0) {
+            return (false, HederaResponseCodes.INVALID_TOKEN_ID);
+        }
+
+        if (_isNonFungible[token] && amount > 0) {
+            return (false, HederaResponseCodes.INVALID_TOKEN_ID);
+        }
+
+        success = true;
+        responseCode = HederaResponseCodes.SUCCESS;
     }
 
     function _validateTokenAssociation(
