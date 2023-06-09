@@ -38,6 +38,7 @@ module.exports = {
         "0x45a5a7108a18dd5013cf2d5857a28144beadc9c70b3bdbd914e38df4e804b8d8",
       ],
       chainId: 298,
+      gas: 1_000_000, // temp fix; can be removed when eth_estimateGas works fine
     },
   },
 };
