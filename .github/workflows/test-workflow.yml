@@ -23,10 +23,15 @@ jobs:
     permissions:
       contents: write
       checks: write
-      pull-requests: write  
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
 
       - name: Use Node.js [18.15]
         uses: actions/setup-node@v3
@@ -59,7 +64,7 @@ jobs:
           comment_mode: off
           json_thousands_separator: ','
           junit_files: "test-*.xml"
-                
+
       - name: Stop the local node
         if: ${{ !cancelled() }}
         run: npx hedera stop
