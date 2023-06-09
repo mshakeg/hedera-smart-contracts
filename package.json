@@ -23,9 +23,6 @@
     "forge:coverage:report": "forge coverage --report lcov",
     "forge:coverage:html": "forge coverage --report lcov && genhtml lcov.info --branch-coverage --output-dir coverage"
   },
-  "engines": {
-    "npm": ">=8.11.0"
-  },
   "devDependencies": {
     "@hashgraph/hedera-local": "^2.8.0",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
