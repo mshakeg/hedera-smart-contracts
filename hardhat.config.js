@@ -39,6 +39,7 @@ module.exports = {
       ],
       chainId: 298,
       gas: 1_000_000, // temp fix; can be removed when eth_estimateGas works fine
+      gasMultiplier: 4
     },
   },
 };
