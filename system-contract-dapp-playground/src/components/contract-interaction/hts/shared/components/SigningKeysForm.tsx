@@ -22,28 +22,27 @@ import Link from 'next/link';
 import { AiOutlineMinus } from 'react-icons/ai';
 import { Dispatch, SetStateAction } from 'react';
 import { Tooltip, Select, Input } from '@chakra-ui/react';
-import { HEDERA_BRANDING_COLORS } from '@/utils/common/constants';
 import { convertCalmelCaseFunctionName } from '@/utils/common/helpers';
 import {
-  CommonKeyObject,
-  IHederaTokenServiceKeyType,
-  IHederaTokenServiceKeyValueType,
-} from '@/types/contract-interactions/HTS';
+  HEDERA_BRANDING_COLORS,
+  HEDERA_CHAKRA_INPUT_BOX_SIZES,
+  HEDERA_CHAKRA_INPUT_BOX_SHARED_CLASSNAME,
+} from '@/utils/common/constants';
 import {
-  handleAddingOrRemovingKeys,
-  handleKeyTypeOnChange,
-  handleKeyValueTypeOnChange,
   handleUpdateKeyValue,
+  handleKeyTypeOnChange,
+  handleAddingOrRemovingKeys,
+  handleKeyValueTypeOnChange,
 } from '../methods/signingKeys';
 
 /** @dev shared component presenting signing keys*/
 interface SigningKeyPageProps {
   buttonTitle: string;
-  keys: CommonKeyObject[];
+  keys: ICommonKeyObject[];
   chosenKeys: Set<IHederaTokenServiceKeyType>;
   keyTypesToShow: Set<IHederaTokenServiceKeyType>;
   HederaTokenKeyTypes: IHederaTokenServiceKeyType[];
-  setKeys: Dispatch<SetStateAction<CommonKeyObject[]>>;
+  setKeys: Dispatch<SetStateAction<ICommonKeyObject[]>>;
   HederaTokenKeyValueType: IHederaTokenServiceKeyValueType[];
   setChosenKeys: Dispatch<SetStateAction<Set<IHederaTokenServiceKeyType>>>;
   setKeyTypesToShow: Dispatch<SetStateAction<Set<IHederaTokenServiceKeyType>>>;
@@ -66,11 +65,7 @@ export const SharedSigningKeysComponent = ({
         {/* Add more key */}
         <div className="flex flex-col gap-0">
           {keys.length < 7 && (
-            <Tooltip
-              label={keys.length !== 0 && 'Add more keys'}
-              placement="top"
-              fontWeight={'medium'}
-            >
+            <Tooltip label={keys.length !== 0 && 'Add more keys'} placement="top" fontWeight={'medium'}>
               <button
                 onClick={() =>
                   handleAddingOrRemovingKeys(
@@ -100,9 +95,7 @@ export const SharedSigningKeysComponent = ({
                 _focus={{ borderColor: HEDERA_BRANDING_COLORS.purple }}
                 placeholder={key.keyType}
                 className="w-[120px] hover:cursor-pointer rounded-md border-white/30"
-                onChange={(e) =>
-                  handleKeyTypeOnChange(e, key, setKeys, setChosenKeys, setKeyTypesToShow)
-                }
+                onChange={(e) => handleKeyTypeOnChange(e, key, setKeys, setChosenKeys, setKeyTypesToShow)}
               >
                 {Array.from(keyTypesToShow).map((keyType) => {
                   return (
@@ -147,14 +140,13 @@ export const SharedSigningKeysComponent = ({
                   type={'text'}
                   onChange={(e) => handleUpdateKeyValue(e, key, setKeys)}
                   placeholder={
-                    key.keyValueType === 'contractId' ||
-                    key.keyValueType === 'delegatableContractId'
+                    key.keyValueType === 'contractId' || key.keyValueType === 'delegatableContractId'
                       ? 'ID of a smart contract instance...'
                       : `${key.keyValueType.split('_')[0].toUpperCase()} compressed public key...`
                   }
-                  size={'md'}
+                  size={HEDERA_CHAKRA_INPUT_BOX_SIZES.medium}
                   focusBorderColor={HEDERA_BRANDING_COLORS.purple}
-                  className={'w-full border-white/30'}
+                  className={HEDERA_CHAKRA_INPUT_BOX_SHARED_CLASSNAME}
                 />
               )}
             </div>

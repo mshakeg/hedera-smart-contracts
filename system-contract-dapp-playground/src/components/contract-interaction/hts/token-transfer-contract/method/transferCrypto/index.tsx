@@ -24,29 +24,28 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@chakra-ui/react';
 import TokenTransferForm from './TokenTransferForm';
 import CryptoTransferForm from './CryptoTransferForm';
-import { transferCrypto } from '@/api/hedera/tokenTransfer-interactions';
-import { handleAPIErrors } from '../../../shared/methods/handleAPIErrors';
+import { ITransactionResult } from '@/types/contract-interactions/shared';
 import { TRANSACTION_PAGE_SIZE } from '../../../shared/states/commonStates';
-import { useToastSuccessful } from '../../../shared/hooks/useToastSuccessful';
-import { usePaginatedTxResults } from '../../../shared/hooks/usePaginatedTxResults';
+import { useToastSuccessful } from '../../../../../../hooks/useToastSuccessful';
+import { handleAPIErrors } from '../../../../../common/methods/handleAPIErrors';
+import { usePaginatedTxResults } from '../../../../../../hooks/usePaginatedTxResults';
 import { SharedExecuteButtonWithFee } from '../../../shared/components/ParamInputForm';
-import { TransactionResultTable } from '../../../shared/components/TransactionResultTable';
-import { useUpdateTransactionResultsToLocalStorage } from '../../../shared/hooks/useUpdateLocalStorage';
-import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../shared/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import { transferCrypto } from '@/api/hedera/hts-interactions/tokenTransfer-interactions';
+import { TransactionResultTable } from '../../../../../common/components/TransactionResultTable';
+import { useUpdateTransactionResultsToLocalStorage } from '../../../../../../hooks/useUpdateLocalStorage';
+import { prepareCryptoTransferList, prepareTokenTransferList } from './helpers/prepareCryptoTransferValues';
+import useFilterTransactionsByContractAddress from '../../../../../../hooks/useFilterTransactionsByContractAddress';
+import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../../../common/methods/handleRetrievingTransactionResultsFromLocalStorage';
 import {
-  IHederaTokenServiceTokenTransferList,
-  IHederaTokenServiceTransferList,
-  TransactionResult,
-} from '@/types/contract-interactions/HTS';
+  CONTRACT_NAMES,
+  HEDERA_COMMON_TRANSACTION_TYPE,
+  HEDERA_TRANSACTION_RESULT_STORAGE_KEYS,
+} from '@/utils/common/constants';
 import {
-  CryptoTransferParam,
   TokenTransferParam,
+  CryptoTransferParam,
   generateInitialTokenTransferParamValues,
 } from './helpers/generateInitialValues';
-import {
-  prepareCryptoTransferList,
-  prepareTokenTransferList,
-} from './helpers/prepareCryptoTransferValues';
 
 interface PageProps {
   baseContract: Contract;
@@ -60,14 +59,16 @@ const CryptoTransfer = ({ baseContract }: PageProps) => {
   const [isSuccessful, setIsSuccessful] = useState(false);
   const hederaNetwork = JSON.parse(Cookies.get('_network') as string);
   const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
-  const transactionResultStorageKey = 'HEDERA.HTS.TOKEN-TRANSFER.CRYPTO-TRANSFER';
   const contractCaller = JSON.parse(Cookies.get('_connectedAccounts') as string)[0];
-  const [transactionResults, setTransactionResults] = useState<TransactionResult[]>([]);
-  const [tokenTransferParamValues, setTokenTransferParamValues] = useState<TokenTransferParam[]>(
-    []
-  );
-  const [cryptoTransferParamValues, setCryptoTransferParamValues] = useState<CryptoTransferParam[]>(
-    []
+  const currentContractAddress = Cookies.get(CONTRACT_NAMES.TOKEN_TRANSFER) as string;
+  const [transactionResults, setTransactionResults] = useState<ITransactionResult[]>([]);
+  const [tokenTransferParamValues, setTokenTransferParamValues] = useState<TokenTransferParam[]>([]);
+  const [cryptoTransferParamValues, setCryptoTransferParamValues] = useState<CryptoTransferParam[]>([]);
+  const transactionResultStorageKey =
+    HEDERA_TRANSACTION_RESULT_STORAGE_KEYS['TOKEN-TRANSFER']['CRYPTO-TRANSFER'];
+  const transactionResultsToShow = useFilterTransactionsByContractAddress(
+    transactionResults,
+    currentContractAddress
   );
 
   /** @dev retrieve token creation results from localStorage to maintain data on re-renders */
@@ -78,13 +79,10 @@ const CryptoTransfer = ({ baseContract }: PageProps) => {
       setCurrentTransactionPage,
       setTransactionResults
     );
-  }, [toaster]);
+  }, [toaster, transactionResultStorageKey]);
 
   // declare a paginatedTransactionResults
-  const paginatedTransactionResults = usePaginatedTxResults(
-    currentTransactionPage,
-    transactionResults
-  );
+  const paginatedTransactionResults = usePaginatedTxResults(currentTransactionPage, transactionResults);
 
   /** @dev handle form inputs on change for tokenTransferParamValue */
   const handleTokenTransferInputOnChange = (
@@ -104,23 +102,23 @@ const CryptoTransfer = ({ baseContract }: PageProps) => {
     setTokenTransferParamValues((prev) =>
       prev.map((masterParam) => {
         if (masterParam.fieldKey === masterFieldKey) {
-          (masterParam.fieldValue as any)[transfersType] = (masterParam.fieldValue as any)[
-            transfersType
-          ].map((transfer: any) => {
-            if (transfer.fieldKey === fieldKey) {
-              const value = e.target.value;
-              if (param === 'isApprovalA' || param === 'isApprovalB') {
-                if (value === '') {
-                  (transfer.fieldValue as any)[param] = false;
+          (masterParam.fieldValue as any)[transfersType] = (masterParam.fieldValue as any)[transfersType].map(
+            (transfer: any) => {
+              if (transfer.fieldKey === fieldKey) {
+                const value = e.target.value;
+                if (param === 'isApprovalA' || param === 'isApprovalB') {
+                  if (value === '') {
+                    (transfer.fieldValue as any)[param] = false;
+                  } else {
+                    (transfer.fieldValue as any)[param] = JSON.parse(value);
+                  }
                 } else {
-                  (transfer.fieldValue as any)[param] = JSON.parse(value);
+                  (transfer.fieldValue as any)[param] = e.target.value;
                 }
-              } else {
-                (transfer.fieldValue as any)[param] = e.target.value;
               }
+              return transfer;
             }
-            return transfer;
-          });
+          );
         }
         return masterParam;
       })
@@ -187,16 +185,14 @@ const CryptoTransfer = ({ baseContract }: PageProps) => {
         break;
       case 'REMOVE':
         if (transferType === 'CRYPTO') {
-          setFieldKey((prev: any) =>
-            prev.filter((field: any) => field.fieldKey !== removingFieldKey)
-          );
+          setFieldKey((prev: any) => prev.filter((field: any) => field.fieldKey !== removingFieldKey));
         } else {
           setTokenTransferParamValues((prev) =>
             prev.map((masterParam) => {
               if (masterParam.fieldKey === masterFieldKey) {
-                (masterParam.fieldValue as any)[transferListType!] = (
-                  masterParam.fieldValue as any
-                )[transferListType!].filter((field: any) => field.fieldKey !== removingFieldKey);
+                (masterParam.fieldValue as any)[transferListType!] = (masterParam.fieldValue as any)[
+                  transferListType!
+                ].filter((field: any) => field.fieldKey !== removingFieldKey);
               }
               return masterParam;
             })
@@ -208,18 +204,13 @@ const CryptoTransfer = ({ baseContract }: PageProps) => {
   /**
    * @dev handle modify master token transfer record
    */
-  const handleModifyMasterTokenTransferRecords = (
-    type: 'ADD' | 'REMOVE',
-    removingFieldKey?: string
-  ) => {
+  const handleModifyMasterTokenTransferRecords = (type: 'ADD' | 'REMOVE', removingFieldKey?: string) => {
     switch (type) {
       case 'ADD':
         setTokenTransferParamValues((prev) => [...prev, generateInitialTokenTransferParamValues()]);
         break;
       case 'REMOVE':
-        setTokenTransferParamValues((prev) =>
-          prev.filter((field) => field.fieldKey !== removingFieldKey)
-        );
+        setTokenTransferParamValues((prev) => prev.filter((field) => field.fieldKey !== removingFieldKey));
         break;
     }
   };
@@ -260,6 +251,9 @@ const CryptoTransfer = ({ baseContract }: PageProps) => {
         toaster,
         transactionHash,
         setTransactionResults,
+        transactionResultStorageKey,
+        sessionedContractAddress: currentContractAddress,
+        transactionType: HEDERA_COMMON_TRANSACTION_TYPE.HTS_CRYPTO_TRANSFER,
       });
       return;
     } else {
@@ -268,7 +262,11 @@ const CryptoTransfer = ({ baseContract }: PageProps) => {
         ...prev,
         {
           status: 'success',
+          transactionResultStorageKey,
+          transactionTimeStamp: Date.now(),
           txHash: transactionHash as string,
+          sessionedContractAddress: currentContractAddress,
+          transactionType: HEDERA_COMMON_TRANSACTION_TYPE.HTS_CRYPTO_TRANSFER,
         },
       ]);
 
@@ -326,7 +324,7 @@ const CryptoTransfer = ({ baseContract }: PageProps) => {
       </div>
 
       {/* transaction results table */}
-      {transactionResults.length > 0 && (
+      {transactionResultsToShow.length > 0 && (
         <TransactionResultTable
           API="CryptoTransfer"
           hederaNetwork={hederaNetwork}

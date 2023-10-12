@@ -26,13 +26,14 @@ import { motion } from 'framer-motion';
 import WalletPopup from '../wallet-popup';
 import { useToast } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
+import { TNetworkName } from '@/types/common';
 import { usePathname } from 'next/navigation';
 import { BsChevronDown } from 'react-icons/bs';
-import { NetworkName } from '@/types/common';
 import { CommonErrorToast } from '../toast/CommonToast';
 import { isProtectedRoute } from '@/utils/common/helpers';
 import { loadAccountInfoFromCookies } from '@/api/cookies';
 import { navVariants } from '@/libs/framer-motion/variants';
+import { HEDERA_COMMON_WALLET_REVERT_REASONS } from '@/utils/common/constants';
 
 const Navbar = () => {
   // local states
@@ -41,7 +42,7 @@ const Navbar = () => {
   const [accounts, setAccounts] = useState<string[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [didWalletPop, setDidWalletPop] = useState(false);
-  const [network, setNetwork] = useState<NetworkName>('testnet');
+  const [network, setNetwork] = useState<TNetworkName>('testnet');
 
   // listen to pathname change event to retrieve account information cookies
   useEffect(() => {
@@ -59,7 +60,7 @@ const Navbar = () => {
         CommonErrorToast({
           toaster,
           title: 'Error retrieving account information',
-          description: "See client's console for more information",
+          description: HEDERA_COMMON_WALLET_REVERT_REASONS.DEFAULT.description,
         });
         return;
       }
@@ -67,7 +68,7 @@ const Navbar = () => {
       // update states
       setAccounts(JSON.parse(accountsInfo.accounts));
       setIsConnected(JSON.parse(accountsInfo.isConnected));
-      setNetwork(JSON.parse(accountsInfo.network) as NetworkName);
+      setNetwork(JSON.parse(accountsInfo.network) as TNetworkName);
     }
   }, [pathname, toaster]);
 
@@ -118,12 +119,7 @@ const Navbar = () => {
               }}
             >
               {/* logo */}
-              <Image
-                src={'/brandings/hedera-logomark.svg'}
-                alt={'hedera-logomark'}
-                width={30}
-                height={30}
-              />
+              <Image src={'/brandings/hedera-logomark.svg'} alt={'hedera-logomark'} width={30} height={30} />
 
               {/* vertical bar */}
               <div className="bg-white/30 w-[1px] h-full mx-3" />
@@ -168,12 +164,7 @@ const Navbar = () => {
       {isConnected && <hr className="w-[99vw] border-t border-white/40" />}
 
       {didWalletPop && (
-        <WalletPopup
-          network={network}
-          isOpen={didWalletPop}
-          userAddress={accounts[0]}
-          setIsOpen={setDidWalletPop}
-        />
+        <WalletPopup network={network} userAddress={accounts[0]} setIsOpen={setDidWalletPop} />
       )}
     </motion.nav>
   );

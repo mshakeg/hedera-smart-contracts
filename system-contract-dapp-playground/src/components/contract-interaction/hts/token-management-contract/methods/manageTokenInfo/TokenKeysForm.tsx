@@ -19,24 +19,20 @@
  */
 
 import { Select, Input } from '@chakra-ui/react';
-import { HEDERA_BRANDING_COLORS } from '@/utils/common/constants';
 import { convertCalmelCaseFunctionName } from '@/utils/common/helpers';
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import {
-  handleKeyValueTypeOnChange,
-  handleUpdateKeyValue,
-} from '../../../shared/methods/signingKeys';
-import {
-  CommonKeyObject,
-  IHederaTokenServiceKeyType,
-  IHederaTokenServiceKeyValueType,
-} from '@/types/contract-interactions/HTS';
+  HEDERA_BRANDING_COLORS,
+  HEDERA_CHAKRA_INPUT_BOX_SIZES,
+  HEDERA_CHAKRA_INPUT_BOX_SHARED_CLASSNAME,
+} from '@/utils/common/constants';
+import { handleKeyValueTypeOnChange, handleUpdateKeyValue } from '../../../shared/methods/signingKeys';
 
 interface PageProps {
   isSuccessful?: boolean;
-  keys: CommonKeyObject[];
+  keys: ICommonKeyObject[];
   keyTypeArrays?: IHederaTokenServiceKeyType[];
-  setKeys: Dispatch<SetStateAction<CommonKeyObject[]>>;
+  setKeys: Dispatch<SetStateAction<ICommonKeyObject[]>>;
   HederaTokenKeyValueType: IHederaTokenServiceKeyValueType[];
 }
 
@@ -141,14 +137,13 @@ const TokenKeysForm = ({
                   type={'text'}
                   onChange={(e) => handleUpdateKeyValue(e, key, setKeys)}
                   placeholder={
-                    key.keyValueType === 'contractId' ||
-                    key.keyValueType === 'delegatableContractId'
+                    key.keyValueType === 'contractId' || key.keyValueType === 'delegatableContractId'
                       ? 'ID of a smart contract instance...'
                       : `${key.keyValueType.split('_')[0].toUpperCase()} compressed public key...`
                   }
-                  size={'md'}
+                  size={HEDERA_CHAKRA_INPUT_BOX_SIZES.medium}
                   focusBorderColor={HEDERA_BRANDING_COLORS.purple}
-                  className={'w-full border-white/30'}
+                  className={HEDERA_CHAKRA_INPUT_BOX_SHARED_CLASSNAME}
                 />
               )}
             </div>

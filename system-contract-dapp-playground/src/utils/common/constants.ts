@@ -18,16 +18,16 @@
  *
  */
 
-import { ContractName } from '@/types/common';
+import { TContractName } from '@/types/common';
 import ERC20Mock from '@hashgraph-smartcontract/artifacts/contracts/erc-20/ERC20Mock.sol/ERC20Mock.json';
+import IHRC729Contract from '@hashgraph-smartcontract/artifacts/contracts/hts-precompile/IHRC.sol/IHRC.json';
 import ERC721Mock from '@hashgraph-smartcontract/artifacts/contracts/erc-721/ERC721Mock.sol/ERC721Mock.json';
-import HRCContract from '@hashgraph-smartcontract/artifacts/contracts/hts-precompile/examples/hrc/HRCContract.sol/HRCContract.json';
 import PrngSystemContract from '@hashgraph-smartcontract/artifacts/contracts/util-precompile/PrngSystemContract.sol/PrngSystemContract.json';
+import ExchangeRatePrecompile from '@hashgraph-smartcontract/artifacts/contracts/exchange-rate-precompile/ExchangeRateMock.sol/ExchangeRateMock.json';
 import TokenQueryContract from '@hashgraph-smartcontract/artifacts/contracts/hts-precompile/examples/token-query/TokenQueryContract.sol/TokenQueryContract.json';
-import ExchangeRatePrecompile from '@hashgraph-smartcontract/artifacts/contracts/exchange-rate-precompile/ExchangeRatePrecompile.sol/ExchangeRatePrecompile.json';
 import TokenTransferContract from '@hashgraph-smartcontract/artifacts/contracts/hts-precompile/examples/token-transfer/TokenTransferContract.sol/TokenTransferContract.json';
-import TokenManagementContract from '@hashgraph-smartcontract/artifacts/contracts/hts-precompile/examples/token-manage/TokenManagementContract.sol/TokenManagementContract.json';
 import TokenCreateCustomContract from '@hashgraph-smartcontract/artifacts/contracts/hts-precompile/examples/token-create/TokenCreateCustom.sol/TokenCreateCustomContract.json';
+import TokenManagementContract from '@hashgraph-smartcontract/artifacts/contracts/hts-precompile/examples/token-manage/TokenManagementContract.sol/TokenManagementContract.json';
 
 /** @notice Hedera Smart Contract official github url */
 export const HEDERA_SMART_CONTRACT_OFFICIAL_GITHUB_URL =
@@ -39,12 +39,8 @@ export const HEDERA_OFFICIAL_HIPS_URL = 'https://hips.hedera.com/';
 /** @notice hashcan baseURL */
 export const HASHSCAN_BASE_URL = 'https://hashscan.io';
 
-/** @notice Hedera branding colors */
-export const HEDERA_BRANDING_COLORS = {
-  violet: '#82ACF9',
-  purple: '#A98DF4',
-  panel: '#374151',
-};
+/** @notice Hedera network */
+export const OFFCIAL_NETWORK_NAME = 'HEDERA';
 
 /** @notice information about Hedera social media */
 export const HEDERA_SOCIAL_MEDIA = [
@@ -147,12 +143,13 @@ export const PROTECTED_ROUTES = [
   '/hedera/prng-hip-351',
   '/hedera/erc-20',
   '/hedera/erc-721',
+  '/activity',
 ];
 
 /**
- * @notice information for LeftSideBar items
+ * @notice information for NavSideBar items
  */
-export const LEFT_SIDE_BAR_ITEMS = [
+export const NAV_SIDE_BAR_ITEMS = [
   {
     name: 'Overview',
     path: PROTECTED_ROUTES[0],
@@ -184,26 +181,35 @@ export const LEFT_SIDE_BAR_ITEMS = [
 ];
 
 /**
+ * @notice an object storing contract names
+ */
+export const CONTRACT_NAMES: Record<string, TContractName> = {
+  ERC20: 'ERC20Mock',
+  ERC721: 'ERC721Mock',
+  PRNG: 'PrngSystemContract',
+  IHRC719: 'IHRC729Contract',
+  TOKEN_QUERY: 'TokenQueryContract',
+  TOKEN_TRANSFER: 'TokenTransferContract',
+  EXCHANGE_RATE: 'ExchangeRatePrecompile',
+  TOKEN_MANAGE: 'TokenManagementContract',
+  TOKEN_CREATE: 'TokenCreateCustomContract',
+};
+
+/**
  * @notice information about Hedera Smart Contract assets
  */
 export const HEDERA_SMART_CONTRACTS_ASSETS = {
   HTS_PRECOMPILED: [
     {
-      name: 'TokenCreateCustomContract' as ContractName,
+      name: 'TokenCreateCustomContract' as TContractName,
       title: 'Token Create Contract',
       contractABI: TokenCreateCustomContract.abi,
       contractBytecode: TokenCreateCustomContract.bytecode,
       githubUrl: `${HEDERA_SMART_CONTRACT_OFFICIAL_GITHUB_URL}/blob/main/contracts/hts-precompile/examples/token-create/TokenCreateCustom.sol`,
-      methods: [
-        'fungibleTokenCreate',
-        'non-fungibleTokenCreate',
-        'mint',
-        'tokenAssociation',
-        'grantKYC',
-      ],
+      methods: ['fungibleTokenCreate', 'non-fungibleTokenCreate', 'mint', 'tokenAssociation', 'grantKYC'],
     },
     {
-      name: 'TokenManagementContract' as ContractName,
+      name: 'TokenManagementContract' as TContractName,
       title: 'Token Management Contract',
       contractABI: TokenManagementContract.abi,
       contractBytecode: TokenManagementContract.bytecode,
@@ -218,7 +224,7 @@ export const HEDERA_SMART_CONTRACTS_ASSETS = {
       ],
     },
     {
-      name: 'TokenQueryContract' as ContractName,
+      name: 'TokenQueryContract' as TContractName,
       title: 'Token Query Contract',
       contractABI: TokenQueryContract.abi,
       contractBytecode: TokenQueryContract.bytecode,
@@ -226,32 +232,32 @@ export const HEDERA_SMART_CONTRACTS_ASSETS = {
       methods: ['tokenValidity', 'generalInfo', 'specificInfo', 'tokenPermission', 'tokenStatus'],
     },
     {
-      name: 'TokenTransferContract' as ContractName,
+      name: 'TokenTransferContract' as TContractName,
       title: 'Token Transfer Contract',
       contractABI: TokenTransferContract.abi,
       contractBytecode: TokenTransferContract.bytecode,
       githubUrl: `${HEDERA_SMART_CONTRACT_OFFICIAL_GITHUB_URL}/blob/main/contracts/hts-precompile/examples/token-transfer/TokenTransferContract.sol`,
-      methods: ['crypto', 'transferToken', 'transferTokens', 'transferFrom'],
+      methods: ['crypto', 'transferToken', 'transferTokens'],
     },
   ],
   TOKEN_ASSOCIATION: {
-    name: 'HRCContract' as ContractName,
+    name: 'IHRC729Contract' as TContractName,
     title: 'Token Associate Example Contract',
-    contractABI: HRCContract.abi,
-    contractBytecode: HRCContract.bytecode,
-    githubUrl: `${HEDERA_SMART_CONTRACT_OFFICIAL_GITHUB_URL}/blob/main/contracts/hts-precompile/examples/hrc/HRCContract.sol`,
-    methods: ['associate', 'dissociate'],
+    contractABI: IHRC729Contract.abi,
+    contractBytecode: IHRC729Contract.bytecode,
+    githubUrl: `${HEDERA_SMART_CONTRACT_OFFICIAL_GITHUB_URL}/blob/main/contracts/hts-precompile/IHRC.sol`,
+    methods: ['IHRC / HIP-719'],
   },
   EXCHANGE_RATE: {
-    name: 'ExchangeRatePrecompile' as ContractName,
+    name: 'ExchangeRatePrecompile' as TContractName,
     title: 'Exchange Rate Example Contract',
     contractABI: ExchangeRatePrecompile.abi,
     contractBytecode: ExchangeRatePrecompile.bytecode,
-    githubUrl: `${HEDERA_SMART_CONTRACT_OFFICIAL_GITHUB_URL}/blob/main/contracts/exchange-rate-precompile/ExchangeRatePrecompile.sol`,
-    methods: ['Approximate USD Value'],
+    githubUrl: `${HEDERA_SMART_CONTRACT_OFFICIAL_GITHUB_URL}/blob/main/contracts/exchange-rate-precompile/ExchangeRateMock.sol`,
+    methods: ['Exchange Rate'],
   },
   PRNG_PRECOMPILED: {
-    name: 'PrngSystemContract' as ContractName,
+    name: 'PrngSystemContract' as TContractName,
     title: 'Pseudo Random Number Example Contract',
     contractABI: PrngSystemContract.abi,
     contractBytecode: PrngSystemContract.bytecode,
@@ -259,7 +265,7 @@ export const HEDERA_SMART_CONTRACTS_ASSETS = {
     methods: ['getPseudoRandomSeed'],
   },
   ERC_20: {
-    name: 'ERC20Mock' as ContractName,
+    name: 'ERC20Mock' as TContractName,
     title: 'ERC-20 Example Contract',
     contractABI: ERC20Mock.abi,
     contractBytecode: ERC20Mock.bytecode,
@@ -267,31 +273,261 @@ export const HEDERA_SMART_CONTRACTS_ASSETS = {
     methods: ['tokenInformation', 'mint', 'balanceOf', 'tokenPermissions', 'transfer'],
   },
   ERC_721: {
-    name: 'ERC721Mock' as ContractName,
+    name: 'ERC721Mock' as TContractName,
     title: 'ERC-721 Example Contract',
     contractABI: ERC721Mock.abi,
     contractBytecode: ERC721Mock.bytecode,
     githubUrl: `${HEDERA_SMART_CONTRACT_OFFICIAL_GITHUB_URL}/blob/main/contracts/erc-721/ERC721Mock.sol`,
     methods: [
-      'name',
-      'symbol',
-      'totalSupply',
-      'balanceOf',
-      'ownerOf',
+      'tokenInformation',
+      'mint',
       'tokenURI',
+      'balance',
+      'owner',
       'approve',
-      'allowance',
-      'setApprovalForAll',
+      'operatorApproval',
       'transferFrom',
-      'delegateApprove',
-      'delegateSetApprovalForAll',
-      'delegateTransferFrom',
-      'getApproved',
-      'ApprovedForAll',
-      'safeTransferFrom',
-      'safeTransferFromWithData',
-      'tokenByIndex',
-      'tokenOfOwnerByIndex',
     ],
   },
+};
+
+/** @notice Hedera branding colors */
+export const HEDERA_BRANDING_COLORS = {
+  violet: '#82ACF9',
+  purple: '#A98DF4',
+  panel: '#374151',
+};
+
+/** @notice Input box sizes */
+export const HEDERA_CHAKRA_INPUT_BOX_SIZES = {
+  'extra-small': 'xs',
+  small: 'sm',
+  medium: 'md',
+  large: 'lg',
+};
+
+/** @notice Table Variants */
+export const HEDERA_CHAKRA_TABLE_VARIANTS = {
+  simple: 'simple',
+  striped: 'striped',
+  unstyled: 'unstyled',
+};
+
+/** @notice Input box shared class name */
+export const HEDERA_CHAKRA_INPUT_BOX_SHARED_CLASSNAME = 'w-full border-white/30';
+
+/**
+ * @notice a shared object for parameters input fields
+ */
+export const HEDERA_SHARED_PARAM_INPUT_FIELDS = {
+  paramKey: '',
+  inputType: '',
+  explanation: '',
+  inputPlaceholder: '',
+  inputSize: HEDERA_CHAKRA_INPUT_BOX_SIZES.medium,
+  inputFocusBorderColor: HEDERA_BRANDING_COLORS.purple,
+  inputClassname: HEDERA_CHAKRA_INPUT_BOX_SHARED_CLASSNAME,
+};
+
+/**
+ * @notice a shared object maping contract name to storage key value
+ */
+export const CONTRACT_NAME_TO_STORAGE_KEY_VALUE: Record<TContractName, string> = {
+  ERC20Mock: 'ERC-20',
+  ERC721Mock: 'ERC-721',
+  IHRC729Contract: 'IHRC719',
+  PrngSystemContract: 'PRNG',
+  TokenQueryContract: 'TOKEN-QUERY',
+  TokenTransferContract: 'TOKEN-TRANSFER',
+  ExchangeRatePrecompile: 'EXCHANGE-RATE',
+  TokenManagementContract: 'TOKEN-MANAGE',
+  TokenCreateCustomContract: 'TOKEN-CREATE',
+};
+
+/**
+ * @notice a shared object stores all transaction result storage keys
+ */
+const prepareTransactionResultStorageKey = (
+  contractKey: string,
+  methodKey: string,
+  resultKey: string,
+  readonly?: boolean
+) => {
+  return `HEDERA.${contractKey}.${methodKey}.${resultKey}-RESULTS${readonly ? `.READONLY` : ``}`;
+};
+export const HEDERA_TRANSACTION_RESULT_STORAGE_KEYS = {
+  'CONTRACT-CREATE': 'HEDERA.CONTRACT-CREATE-RESULTS',
+  'TOKEN-CREATE': {
+    'TOKEN-KYC': prepareTransactionResultStorageKey('HTS', 'TOKEN-CREATE', 'TOKEN-KYC'),
+    'MINT-TOKEN': prepareTransactionResultStorageKey('HTS', 'TOKEN-CREATE', 'MINT-TOKEN'),
+    'FUNGIBLE-TOKEN': prepareTransactionResultStorageKey('HTS', 'TOKEN-CREATE', 'FUNGIBLE-TOKEN'),
+    'ASSOCIATE-TOKEN': prepareTransactionResultStorageKey('HTS', 'TOKEN-CREATE', 'ASSOCIATE-TOKEN'),
+    'NON-FUNGIBLE-TOKEN': prepareTransactionResultStorageKey('HTS', 'TOKEN-CREATE', 'NON-FUNGIBLE-TOKEN'),
+  },
+  'TOKEN-MANAGE': {
+    'TOKEN-INFO': prepareTransactionResultStorageKey('HTS', 'TOKEN-MANAGE', 'TOKEN-INFO'),
+    'TOKEN-STATUS': prepareTransactionResultStorageKey('HTS', 'TOKEN-MANAGE', 'TOKEN-STATUS'),
+    'TOKEN-DELETE': prepareTransactionResultStorageKey('HTS', 'TOKEN-MANAGE', 'TOKEN-DELETE'),
+    'TOKEN-RELATION': prepareTransactionResultStorageKey('HTS', 'TOKEN-MANAGE', 'TOKEN-RELATION'),
+    'TOKEN-REDUCTION': prepareTransactionResultStorageKey('HTS', 'TOKEN-MANAGE', 'TOKEN-REDUCTION'),
+    'TOKEN-PERMISSION': prepareTransactionResultStorageKey('HTS', 'TOKEN-MANAGE', 'TOKEN-PERMISSION'),
+  },
+  'TOKEN-QUERY': {
+    'TOKEN-VALIDITY': prepareTransactionResultStorageKey('HTS', 'TOKEN-QUERY', 'TOKEN-VALIDITY'),
+    'TOKEN-PERMISSION': prepareTransactionResultStorageKey('HTS', 'TOKEN-QUERY', 'TOKEN-PERMISSION'),
+    'TOKEN-STATUS-INFO': prepareTransactionResultStorageKey('HTS', 'TOKEN-QUERY', 'TOKEN-STATUS-INFO'),
+    'TOKEN-GENERAL-INFO': prepareTransactionResultStorageKey('HTS', 'TOKEN-QUERY', 'TOKEN-GENERAL-INFO'),
+    'TOKEN-SPECIFIC-INFO': prepareTransactionResultStorageKey('HTS', 'TOKEN-QUERY', 'TOKEN-SPECIFIC-INFO'),
+  },
+  'TOKEN-TRANSFER': {
+    'SINGLE-TOKEN': prepareTransactionResultStorageKey('HTS', 'TOKEN-TRANSFER', 'SINGLE-TOKEN'),
+    'CRYPTO-TRANSFER': prepareTransactionResultStorageKey('HTS', 'TOKEN-TRANSFER', 'CRYPTO-TRANSFER'),
+    'MULTIPLE-TOKENS': prepareTransactionResultStorageKey('HTS', 'TOKEN-TRANSFER', 'MULTIPLE-TOKENS'),
+  },
+  'IHRC719-RESULTS': `HEDERA.IHRC719.IHRC719-RESULTS`,
+  'ERC20-RESULT': {
+    'TOKEN-INFO': prepareTransactionResultStorageKey('EIP', 'ERC-20', 'TOKEN-INFO'),
+    'TOKEN-MINT': prepareTransactionResultStorageKey('EIP', 'ERC-20', 'TOKEN-MINT'),
+    'BALANCE-OF': prepareTransactionResultStorageKey('EIP', 'ERC-20', 'BALANCE-OF', true),
+    'TOKEN-TRANSFER': prepareTransactionResultStorageKey('EIP', 'ERC-20', 'TOKEN-TRANSFER'),
+    'TOKEN-PERMISSION': prepareTransactionResultStorageKey('EIP', 'ERC-20', 'TOKEN-PERMISSION'),
+    'ALLOWANCES-RESULT': prepareTransactionResultStorageKey('EIP', 'ERC-20', 'ALLOWANCES', true),
+  },
+  'ERC721-RESULT': {
+    'TOKEN-INFO': prepareTransactionResultStorageKey('EIP', 'ERC-721', 'TOKEN-INFO', true),
+    'TOKEN-MINT': prepareTransactionResultStorageKey('EIP', 'ERC-721', 'TOKEN-MINT'),
+    'OWNER-OF': prepareTransactionResultStorageKey('EIP', 'ERC-721', 'OWNER-OF', true),
+    'SET-APPROVAL': prepareTransactionResultStorageKey('EIP', 'ERC-721', 'SET-APPROVAL'),
+    'TOKEN-URI': prepareTransactionResultStorageKey('EIP', 'ERC-721', 'TOKEN-URI', true),
+    'BALANCE-OF': prepareTransactionResultStorageKey('EIP', 'ERC-721', 'BALANCE-OF', true),
+    'TOKEN-TRANSFER': prepareTransactionResultStorageKey('EIP', 'ERC-721', 'TOKEN-TRANSFER'),
+    'TOKEN-PERMISSION': prepareTransactionResultStorageKey('EIP', 'ERC-721', 'TOKEN-PERMISSION'),
+    'APPROVAL-STATUS': prepareTransactionResultStorageKey('EIP', 'ERC-721', 'APPROVAL-STATUS', true),
+  },
+  'PRNG-RESULT': {
+    'PSEUDO-RANDOM': prepareTransactionResultStorageKey('PRNG', 'PRNG', 'PSEUDO-RANDOM'),
+  },
+  'EXCHANGE-RATE-RESULT': {
+    'EXCHANGE-RATE': prepareTransactionResultStorageKey('EXCHANGE', 'EXCHANGE', 'EXCHANGE-RATE'),
+  },
+};
+
+/**
+ * @notice stores common revert reasons from wallet
+ */
+export const HEDERA_COMMON_WALLET_REVERT_REASONS = {
+  REJECT: {
+    // @notice 4001 error code is returned when a metamask wallet request is rejected by the user
+    // @notice See https://docs.metamask.io/wallet/reference/provider-api/#errors for more information on the error returned by Metamask.
+    code: '4001',
+    description: 'You have rejected the request.',
+  },
+  NETWORK_SWITCH: {
+    // @notice -32002 error code is returned when a metamask wallet request is already in progress
+    // @notice See https://docs.metamask.io/wallet/reference/provider-api/#errors for more information on the error returned by Metamask.
+    code: '-32002',
+    description: 'A network switch request already in progress.',
+  },
+  NONCE: {
+    message: 'nonce has already been used',
+    description: 'Nonce has already been used. Please try again!',
+  },
+  ALLOWANCE_BELOW_ZERO: {
+    message: 'decreased allowance below zero',
+    description: 'The transaction was reverted due to the allowance decrease falling below zero.',
+  },
+  TRANSFER_EXCEEDS_BALANCE: {
+    message: 'transfer amount exceeds balance',
+    description: 'Transfer amount exceeds balance.',
+  },
+  INSUFFICIENT_ALLOWANCE: {
+    message: 'insufficient allowance',
+    description: 'Insufficient allowance.',
+  },
+  UNAUTHORIZED_CALLER: {
+    message: 'approve caller is not token owner or approved for all',
+    description: 'Unauthorized caller. Caller is not token owner.',
+  },
+  APPROVAL_CURRENT_CALLER: {
+    message: 'approval to current owner',
+    description: 'Caller is the token owner.',
+  },
+  INVALID_TOKENID: {
+    message: 'invalid token ID',
+    description: 'Invalid token ID',
+  },
+  DEFAULT: {
+    description: "See client's console for more information",
+  },
+};
+
+/**
+ * @notice stores common transaction type constants
+ */
+export const HEDERA_COMMON_TRANSACTION_TYPE = {
+  ERC20_MINT: 'ERC20-MINT',
+  ERC721_MINT: 'ERC721-MINT',
+  HIP351_PRNG: 'HIP-351-PRNG',
+  HTS_WIPE_NFT: 'HTS-WIPE-NFT',
+  HTS_NFT_MINT: 'HTS-NFT-MINT',
+  ERC20_APPROVE: 'ERC20-APPROVE',
+  HTS_GRANT_KYC: 'HTS-GRANT-KYC',
+  HTS_NFT_CREATE: 'HTS-NFT-CREATE',
+  HTS_TOKEN_MINT: 'HTS-TOKEN-MINT',
+  HTS_WIPE_TOKEN: 'HTS-WIPE-TOKEN',
+  HTS_TOKEN_BURN: 'HTS-TOKEN-BURN',
+  ERC20_TRANSFER: 'ERC20-TRANSFER',
+  ERC721_APPROVE: 'ERC721-APPROVE',
+  HIP475_BAR_TO_CENT: 'BAR-TO-CENT',
+  HIP475_CENT_TO_BAR: 'CENT-TO-BAR',
+  HTS_TOKEN_PAUSE: 'HTS-TOKEN-PAUSE',
+  ERC721_OWNER_OF: 'ERC721-OWNER-OF',
+  HTS_TOKEN_CREATE: 'HTS-TOKEN-CREATE',
+  HTS_TOKEN_DELETE: 'HTS-TOKEN-DELETE',
+  HTS_FREEZE_TOKEN: 'HTS-FREEZE-TOKEN',
+  HTS_QUERY_IS_KYC: 'HTS-QUERY-IS-KYC',
+  ERC20_ALLOWANCES: 'ERC20-ALLOWANCES',
+  ERC721_TOKEN_URI: 'ERC721-TOKEN-URI',
+  ERC20_TOKEN_INFO: 'ERC20-TOKEN-INFO',
+  HTS_SET_APPROVAL: 'HTS-SET-APPROVAL',
+  HTS_APPROVED_NFT: 'HTS-APPROVED-NFT',
+  ERC20_BALANCE_OF: 'ERC20-BALANCE-OF',
+  IHRC719_ASSOCIATE: 'IHRC719-ASSOCIATE',
+  HTS_TOKEN_UNPAUSE: 'HTS-TOKEN-UNPAUSE',
+  ERC721_TOKEN_INFO: 'ERC721-TOKEN-INFO',
+  ERC721_BALANCE_OF: 'ERC721-BALANCE-OF',
+  HTS_UNFREEZE_TOKEN: 'HTS-UNFREEZE-TOKEN',
+  HTS_QUERY_NFT_INFO: 'HTS-QUERY-NFT-INFO',
+  ERC721_IS_APPROVAL: 'ERC721-IS-APPROVAL',
+  HTS_TOKEN_TRANSFER: 'HTS-TOKEN-TRANSFER',
+  HTS_APPROVED_TOKEN: 'HTS-APPROVED-TOKEN',
+  IHRC719_DISSOCIATE: 'IHRC719-DISSOCIATE',
+  ERC721_GET_APPROVE: 'ERC721-GET-APPROVE',
+  HTS_QUERY_IS_TOKEN: 'HTS-QUERY-IS-TOKEN',
+  HTS_QUERY_ALLOWANCE: 'HTS-QUERY-ALLOWANCE',
+  HTS_QUERY_IS_FROZEN: 'HTS-QUERY-IS-FROZEN',
+  HTS_CRYPTO_TRANSFER: 'HTS-CRYPTO-TRANSFER',
+  HTS_TOKENS_TRANSFER: 'HTS-TOKENS-TRANSFER',
+  ERC721_SET_APPROVAL: 'ERC721-SET-APPROVAL',
+  HTS_REVOKE_KYC: 'HTS-APPROVED-REVOKE-KYC',
+  HTS_TOKEN_ASSOCIATE: 'HTS-TOKEN-ASSOCIATE',
+  ERC20_TRANSFER_FROM: 'ERC20-TRANSFER-FROM',
+  HTS_UPDATE_INFO: 'HTS-APPROVED-UPDATE-INFO',
+  HTS_UPDATE_KEYS: 'HTS-APPROVED-UPDATE-KEYS',
+  HTS_QUERY_TOKEN_TYPE: 'HTS-QUERY-TOKEN-TYPE',
+  HTS_QUERY_TOKEN_KEYS: 'HTS-QUERY-TOKEN-KEYS',
+  ERC721_TRANSFER_FROM: 'ERC721-TRANSFER-FROM',
+  HTS_QUERY_TOKEN_INFO: 'HTS-QUERY-TOKEN-INFO',
+  HTS_QUERY_IS_APPROVAL: 'HTS-QUERY-IS-APPROVAL',
+  HTS_QUERY_CUSTOM_FEES: 'HTS-QUERY-CUSTOM-FEES',
+  HTS_UPDATE_EXPIRY: 'HTS-APPROVED-UPDATE-EXPIRY',
+  HTS_QUERY_TOKEN_EXPIRY: 'HTS-QUERY-TOKEN-EXPIRY',
+  HTS_QUERY_GET_APPROVED: 'HTS-QUERY-GET-APPROVED',
+  HTS_QUERY_FUNGIBLE_INFO: 'HTS-QUERY-FUNGIBLE-INFO',
+  ERC20_INCREASE_ALLOWANCE: 'ERC20-INCREASE-ALLOWANCE',
+  ERC20_DECREASE_ALLOWANCE: 'ERC20-DECREASE-ALLOWANCE',
+  HTS_DISSOCIATE_TOKEN: 'HTS-UNFREEZE-DISSOCIATE-TOKEN',
+  ERC721_SAFE_TRANSFER_FROM: 'ERC721-SAFE-TRANSFER-FROM',
+  HTS_QUERY_DEFAULT_KYC_STATUS: 'HTS-QUERY-DEFAULT-KYC-STATUS',
+  HTS_QUERY_DEFAULT_FREEZE_STATUS: 'HTS-QUERY-DEFAULT-FREEZE-STATUS',
 };

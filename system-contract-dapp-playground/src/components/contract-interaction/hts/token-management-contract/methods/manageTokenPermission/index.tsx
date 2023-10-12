@@ -23,22 +23,28 @@ import { Contract } from 'ethers';
 import { useToast } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { CommonErrorToast } from '@/components/toast/CommonToast';
-import { TransactionResult } from '@/types/contract-interactions/HTS';
-import { handleAPIErrors } from '../../../shared/methods/handleAPIErrors';
+import { ITransactionResult } from '@/types/contract-interactions/shared';
 import { TRANSACTION_PAGE_SIZE } from '../../../shared/states/commonStates';
-import { useToastSuccessful } from '../../../shared/hooks/useToastSuccessful';
-import { manageTokenPermission } from '@/api/hedera/tokenManagement-interactions';
-import { usePaginatedTxResults } from '../../../shared/hooks/usePaginatedTxResults';
-import { TransactionResultTable } from '../../../shared/components/TransactionResultTable';
-import { handleSanitizeHederaFormInputs } from '../../../shared/methods/handleSanitizeFormInputs';
-import { useUpdateTransactionResultsToLocalStorage } from '../../../shared/hooks/useUpdateLocalStorage';
-import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../shared/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import { handleAPIErrors } from '../../../../../common/methods/handleAPIErrors';
+import { useToastSuccessful } from '../../../../../../hooks/useToastSuccessful';
+import { usePaginatedTxResults } from '../../../../../../hooks/usePaginatedTxResults';
+import { TransactionResultTable } from '../../../../../common/components/TransactionResultTable';
+import { handleSanitizeHederaFormInputs } from '../../../../../common/methods/handleSanitizeFormInputs';
+import { manageTokenPermission } from '@/api/hedera/hts-interactions/tokenManagement-interactions';
+import { useUpdateTransactionResultsToLocalStorage } from '../../../../../../hooks/useUpdateLocalStorage';
+import { htsTokenPermissionParamFields } from '@/utils/contract-interactions/HTS/token-management/constant';
+import useFilterTransactionsByContractAddress from '../../../../../../hooks/useFilterTransactionsByContractAddress';
+import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../../../common/methods/handleRetrievingTransactionResultsFromLocalStorage';
 import {
-  SharedExecuteButtonWithFee,
+  CONTRACT_NAMES,
+  HEDERA_COMMON_TRANSACTION_TYPE,
+  HEDERA_TRANSACTION_RESULT_STORAGE_KEYS,
+} from '@/utils/common/constants';
+import {
   SharedFormButton,
   SharedFormInputField,
+  SharedExecuteButtonWithFee,
 } from '../../../shared/components/ParamInputForm';
-import { htsTokenPermissionParamFields } from '@/utils/contract-interactions/HTS/token-management/constant';
 
 interface PageProps {
   baseContract: Contract;
@@ -55,8 +61,10 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
   const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
   const tokenCommonFields = ['hederaTokenAddress', 'targetApprovedAddress'];
   const [APIMethods, setAPIMethods] = useState<API_NAMES>('APPROVED_FUNGIBLE');
-  const [transactionResults, setTransactionResults] = useState<TransactionResult[]>([]);
-  const transactionResultStorageKey = 'HEDERA.HTS.TOKEN-MANAGEMENT.TOKEN-PERMISSION-RESULTS';
+  const currentContractAddress = Cookies.get(CONTRACT_NAMES.TOKEN_MANAGE) as string;
+  const [transactionResults, setTransactionResults] = useState<ITransactionResult[]>([]);
+  const transactionResultStorageKey =
+    HEDERA_TRANSACTION_RESULT_STORAGE_KEYS['TOKEN-MANAGE']['TOKEN-PERMISSION'];
   const initialParamValues = {
     feeValue: '',
     serialNumber: '',
@@ -66,6 +74,12 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
     targetApprovedAddress: '',
   };
   const [paramValues, setParamValues] = useState<any>(initialParamValues);
+
+  const transactionTypeMap = {
+    SET_APPROVAL: HEDERA_COMMON_TRANSACTION_TYPE.HTS_SET_APPROVAL,
+    APPROVED_FUNGIBLE: HEDERA_COMMON_TRANSACTION_TYPE.HTS_APPROVED_TOKEN,
+    APPROVED_NON_FUNGIBLE: HEDERA_COMMON_TRANSACTION_TYPE.HTS_APPROVED_NFT,
+  };
 
   const APIButtonTitles: { API: API_NAMES; apiSwitchTitle: string; executeTitle: string }[] = [
     {
@@ -81,6 +95,11 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
     { API: 'SET_APPROVAL', apiSwitchTitle: 'Set Approval', executeTitle: 'Set Approval For All' },
   ];
 
+  const transactionResultsToShow = useFilterTransactionsByContractAddress(
+    transactionResults,
+    currentContractAddress
+  );
+
   /** @dev retrieve token creation results from localStorage to maintain data on re-renders */
   useEffect(() => {
     handleRetrievingTransactionResultsFromLocalStorage(
@@ -89,13 +108,10 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
       setCurrentTransactionPage,
       setTransactionResults
     );
-  }, [toaster]);
+  }, [toaster, transactionResultStorageKey]);
 
   // declare a paginatedTransactionResults
-  const paginatedTransactionResults = usePaginatedTxResults(
-    currentTransactionPage,
-    transactionResults
-  );
+  const paginatedTransactionResults = usePaginatedTxResults(currentTransactionPage, transactionResultsToShow);
 
   /** @dev handle form inputs on change */
   const handleInputOnChange = (e: any, param: string) => {
@@ -155,7 +171,10 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
         toaster,
         transactionHash,
         setTransactionResults,
+        transactionResultStorageKey,
         tokenAddress: hederaTokenAddress,
+        transactionType: transactionTypeMap[API],
+        sessionedContractAddress: currentContractAddress,
       });
       return;
     } else {
@@ -164,8 +183,12 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
         ...prev,
         {
           status: 'success',
+          transactionResultStorageKey,
           tokenAddress: hederaTokenAddress,
+          transactionTimeStamp: Date.now(),
           txHash: transactionHash as string,
+          transactionType: transactionTypeMap[API],
+          sessionedContractAddress: currentContractAddress,
         },
       ]);
 
@@ -219,9 +242,7 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
                 explanation={(htsTokenPermissionParamFields as any)[param].explanation}
                 paramClassName={(htsTokenPermissionParamFields as any)[param].inputClassname}
                 paramPlaceholder={(htsTokenPermissionParamFields as any)[param].inputPlaceholder}
-                paramFocusColor={
-                  (htsTokenPermissionParamFields as any)[param].inputFocusBorderColor
-                }
+                paramFocusColor={(htsTokenPermissionParamFields as any)[param].inputFocusBorderColor}
               />
             </div>
           );
@@ -238,12 +259,8 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
               paramType={(htsTokenPermissionParamFields as any)['amountToApprove'].inputType}
               paramSize={(htsTokenPermissionParamFields as any)['amountToApprove'].inputSize}
               explanation={(htsTokenPermissionParamFields as any)['amountToApprove'].explanation}
-              paramClassName={
-                (htsTokenPermissionParamFields as any)['amountToApprove'].inputClassname
-              }
-              paramPlaceholder={
-                (htsTokenPermissionParamFields as any)['amountToApprove'].inputPlaceholder
-              }
+              paramClassName={(htsTokenPermissionParamFields as any)['amountToApprove'].inputClassname}
+              paramPlaceholder={(htsTokenPermissionParamFields as any)['amountToApprove'].inputPlaceholder}
               paramFocusColor={
                 (htsTokenPermissionParamFields as any)['amountToApprove'].inputFocusBorderColor
               }
@@ -263,12 +280,8 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
               paramSize={(htsTokenPermissionParamFields as any)['serialNumber'].inputSize}
               explanation={(htsTokenPermissionParamFields as any)['serialNumber'].explanation}
               paramClassName={(htsTokenPermissionParamFields as any)['serialNumber'].inputClassname}
-              paramPlaceholder={
-                (htsTokenPermissionParamFields as any)['serialNumber'].inputPlaceholder
-              }
-              paramFocusColor={
-                (htsTokenPermissionParamFields as any)['serialNumber'].inputFocusBorderColor
-              }
+              paramPlaceholder={(htsTokenPermissionParamFields as any)['serialNumber'].inputPlaceholder}
+              paramFocusColor={(htsTokenPermissionParamFields as any)['serialNumber'].inputFocusBorderColor}
             />
           </>
         )}
@@ -319,7 +332,7 @@ const ManageTokenPermission = ({ baseContract }: PageProps) => {
       </div>
 
       {/* transaction results table */}
-      {transactionResults.length > 0 && (
+      {transactionResultsToShow.length > 0 && (
         <TransactionResultTable
           API="TokenCreate"
           hederaNetwork={hederaNetwork}

@@ -23,20 +23,26 @@ import { Contract } from 'ethers';
 import { useEffect, useMemo, useState } from 'react';
 import { useDisclosure, useToast } from '@chakra-ui/react';
 import { CommonErrorToast } from '@/components/toast/CommonToast';
-import { TransactionResult } from '@/types/contract-interactions/HTS';
-import { handleAPIErrors } from '../../../shared/methods/handleAPIErrors';
+import { ITransactionResult } from '@/types/contract-interactions/shared';
 import { TRANSACTION_PAGE_SIZE } from '../../../shared/states/commonStates';
-import { queryTokenGeneralInfomation } from '@/api/hedera/tokenQuery-interactions';
-import { usePaginatedTxResults } from '../../../shared/hooks/usePaginatedTxResults';
+import { handleAPIErrors } from '../../../../../common/methods/handleAPIErrors';
 import TokenGeneralInfoModal from '../../../shared/components/TokenGeneralInfoModal';
-import { TransactionResultTable } from '../../../shared/components/TransactionResultTable';
-import { handleSanitizeHederaFormInputs } from '../../../shared/methods/handleSanitizeFormInputs';
-import { htsQueryTokenInfoParamFields } from '@/utils/contract-interactions/HTS/token-query/constant';
-import { useUpdateTransactionResultsToLocalStorage } from '../../../shared/hooks/useUpdateLocalStorage';
-import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../shared/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import { usePaginatedTxResults } from '../../../../../../hooks/usePaginatedTxResults';
+import { TransactionResultTable } from '../../../../../common/components/TransactionResultTable';
+import { handleSanitizeHederaFormInputs } from '../../../../../common/methods/handleSanitizeFormInputs';
 import {
-  SharedExecuteButton,
+  CONTRACT_NAMES,
+  HEDERA_COMMON_TRANSACTION_TYPE,
+  HEDERA_TRANSACTION_RESULT_STORAGE_KEYS,
+} from '@/utils/common/constants';
+import { queryTokenGeneralInfomation } from '@/api/hedera/hts-interactions/tokenQuery-interactions';
+import { htsQueryTokenInfoParamFields } from '@/utils/contract-interactions/HTS/token-query/constant';
+import { useUpdateTransactionResultsToLocalStorage } from '../../../../../../hooks/useUpdateLocalStorage';
+import useFilterTransactionsByContractAddress from '../../../../../../hooks/useFilterTransactionsByContractAddress';
+import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../../../common/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import {
   SharedFormButton,
+  SharedExecuteButton,
   SharedFormInputField,
 } from '../../../shared/components/ParamInputForm';
 
@@ -60,8 +66,10 @@ const QueryTokenGeneralInfomation = ({ baseContract }: PageProps) => {
   const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
   const [tokenInfoFromTxResult, setTokenInfoFromTxResult] = useState<any>();
   const [tokenAddressFromTxResult, setTokenAddressFromTxResult] = useState('');
-  const [transactionResults, setTransactionResults] = useState<TransactionResult[]>([]);
-  const transactionResultStorageKey = 'HEDERA.HTS.TOKEN-QUERY.TOKEN-GENERAL-INFO-RESULTS';
+  const currentContractAddress = Cookies.get(CONTRACT_NAMES.TOKEN_QUERY) as string;
+  const [transactionResults, setTransactionResults] = useState<ITransactionResult[]>([]);
+  const transactionResultStorageKey =
+    HEDERA_TRANSACTION_RESULT_STORAGE_KEYS['TOKEN-QUERY']['TOKEN-GENERAL-INFO'];
   const [APIMethodsFromTxResult, setAPIMethodsFromTxResult] = useState<API_NAMES>('TOKEN');
   const initialParamValues = {
     serialNumber: '',
@@ -83,6 +91,12 @@ const QueryTokenGeneralInfomation = ({ baseContract }: PageProps) => {
     NON_FUNFIBLE: 'NonFungibleTokenInfo',
   };
 
+  const transactionTypeMap = {
+    TOKEN: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_TOKEN_INFO,
+    NON_FUNFIBLE: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_NFT_INFO,
+    FUNGIBLE: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_FUNGIBLE_INFO,
+  };
+
   const APIButtonTitles: { API: API_NAMES; apiSwitchTitle: string; executeTitle: any }[] = [
     {
       API: 'TOKEN',
@@ -101,6 +115,11 @@ const QueryTokenGeneralInfomation = ({ baseContract }: PageProps) => {
     },
   ];
 
+  const transactionResultsToShow = useFilterTransactionsByContractAddress(
+    transactionResults,
+    currentContractAddress
+  );
+
   /** @dev retrieve token creation results from localStorage to maintain data on re-renders */
   useEffect(() => {
     handleRetrievingTransactionResultsFromLocalStorage(
@@ -109,13 +128,10 @@ const QueryTokenGeneralInfomation = ({ baseContract }: PageProps) => {
       setCurrentTransactionPage,
       setTransactionResults
     );
-  }, [toaster]);
+  }, [toaster, transactionResultStorageKey]);
 
   // declare a paginatedTransactionResults
-  const paginatedTransactionResults = usePaginatedTxResults(
-    currentTransactionPage,
-    transactionResults
-  );
+  const paginatedTransactionResults = usePaginatedTxResults(currentTransactionPage, transactionResultsToShow);
 
   /** @dev handle form inputs on change */
   const handleInputOnChange = (e: any, param: string) => {
@@ -161,8 +177,11 @@ const QueryTokenGeneralInfomation = ({ baseContract }: PageProps) => {
         toaster,
         err: err,
         setTransactionResults,
+        transactionResultStorageKey,
         transactionHash: transactionHash,
+        transactionType: transactionTypeMap[API],
         tokenAddress: paramValues.hederaTokenAddress,
+        sessionedContractAddress: currentContractAddress,
       });
       return;
     } else {
@@ -173,9 +192,13 @@ const QueryTokenGeneralInfomation = ({ baseContract }: PageProps) => {
         {
           APICalled: API,
           status: 'success',
+          transactionResultStorageKey,
+          transactionTimeStamp: Date.now(),
           txHash: transactionHash as string,
-          tokenAddress: paramValues.hederaTokenAddress,
+          transactionType: transactionTypeMap[API],
           tokenInfo: tokenInfoResult[eventMaps[API]],
+          tokenAddress: paramValues.hederaTokenAddress,
+          sessionedContractAddress: currentContractAddress,
         },
       ]);
       setIsSuccessful(true);
@@ -241,7 +264,7 @@ const QueryTokenGeneralInfomation = ({ baseContract }: PageProps) => {
       </div>
 
       {/* transaction results table */}
-      {transactionResults.length > 0 && (
+      {transactionResultsToShow.length > 0 && (
         <TransactionResultTable
           API="QueryTokenGeneralInfo"
           onOpen={onOpen}

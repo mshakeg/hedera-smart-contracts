@@ -18,46 +18,6 @@
  *
  */
 
-/** @dev the type for HTS transaction results */
-export type TransactionResult = {
-  status: 'success' | 'fail';
-  txHash: string;
-  APICalled?: any;
-  tokenInfo?: any;
-  isToken?: boolean;
-  keyTypeCalled?: any;
-  tokenAddress?: string;
-  accountAddress?: string;
-  tokenAddresses?: string[];
-};
-
-/** @dev an interface for the results returned back from interacting with Hedera System Smart Contracts */
-interface SmartContractExecutionResult {
-  Frozen?: any;
-  IsToken?: any;
-  Approved?: any;
-  TokenType?: any;
-  KycGranted?: any;
-  result?: boolean;
-  AllowanceValue?: any;
-  ApprovedAddress?: any;
-  tokenAddress?: string;
-  transactionHash?: string;
-  TokenDefaultKycStatus?: any;
-  TokenDefaultFreezeStatus?: any;
-  TokenInfo?: IHederaTokenServiceTokenInfo;
-  TokenKey?: IHederaTokenServiceKeyValueType;
-  TokenExpiryInfo?: IHederaTokenServiceExpiry;
-  FungibleTokenInfo?: IHederaTokenServiceFungibleTokenInfo;
-  NonFungibleTokenInfo?: IHederaTokenServiceNonFungibleTokenInfo;
-  TokenCustomFees?: {
-    fixedFees: IHederaTokenServiceFixedFee[];
-    royaltyFees: IHederaTokenServiceRoyaltyFee[];
-    fractionalFees: IHederaTokenServiceFractionalFee[];
-  };
-  err?: any;
-}
-
 /**
  * @dev a type for the IHederaTokenService.TokenKey.keyType
  *
@@ -95,7 +55,7 @@ type IHederaTokenServiceKeyValueType =
  *
  * @param err?: any
  */
-interface CommonKeyObject {
+interface ICommonKeyObject {
   keyType: IHederaTokenServiceKeyType;
   keyValueType: IHederaTokenServiceKeyValueType;
   keyValue: string | boolean;

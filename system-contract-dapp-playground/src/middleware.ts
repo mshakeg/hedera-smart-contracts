@@ -36,5 +36,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/hedera/:path*'],
+  matcher: ['/', '/hedera/:path*', '/activity'],
 };

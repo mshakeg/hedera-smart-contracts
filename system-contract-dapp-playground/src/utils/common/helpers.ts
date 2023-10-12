@@ -19,9 +19,10 @@
  */
 
 import { ethers } from 'ethers';
-import { NetworkName } from '@/types/common';
+import { TNetworkName } from '@/types/common';
 import { getCurrentChainId } from '@/api/wallet';
 import { HEDERA_NETWORKS, PROTECTED_ROUTES } from './constants';
+import { ITransactionResult } from '@/types/contract-interactions/shared';
 
 /**
  * @dev validating if a route is protected
@@ -58,7 +59,7 @@ export const isCorrectHederaNetwork = async (walletProvider: ethers.BrowserProvi
  *
  * @returns string
  */
-export const chainIdToNetwork = (chainId: string): NetworkName => {
+export const chainIdToNetwork = (chainId: string): TNetworkName => {
   switch (chainId) {
     case '0x127':
       return 'mainnet';
@@ -103,4 +104,120 @@ export const generatedRandomUniqueKey = (byteLength: number) => {
   const randomBytes = ethers.randomBytes(9);
   const randomKey = ethers.hexlify(randomBytes);
   return randomKey;
+};
+
+/**
+ * @dev prepare a list of transaction in order from newest to oldest based on the timestamp when each transaction occurs
+ *
+ * @returns allTransactions: ITransactionResult[]
+ */
+export const prepareTransactionList = () => {
+  // prepare
+  const transactions: ITransactionResult[] = [];
+
+  // loop through localStorage items
+  if (typeof localStorage !== 'undefined') {
+    for (let i = 0; i < localStorage.length; i++) {
+      // get key
+      const key = localStorage.key(i);
+
+      // only include item with KEY includes 'HEDERA' and NOT include 'READONLY'
+      if (key?.includes('HEDERA')) {
+        const records = JSON.parse(localStorage.getItem(key) || '');
+        records.forEach((record: any) => {
+          transactions.push({ ...record });
+        });
+      }
+    }
+  }
+
+  // sort transactions from oldest to newest to assign recordIndex
+  const sortedTransactions = transactions
+    .sort((txA, txB) => txA.transactionTimeStamp - txB.transactionTimeStamp)
+    .map((record, index) => ({ ...record, recordIndex: index + 1 }));
+
+  return sortedTransactions;
+};
+
+/**
+ * @dev prepare headers object for CSV exporting feature
+ */
+export const prepareCSVHeaders = () => {
+  return [
+    {
+      label: 'Request Type',
+      key: 'reques_type',
+    },
+    {
+      label: 'Transaction Type',
+      key: 'transaction_type',
+    },
+    {
+      label: 'Status',
+      key: 'status',
+    },
+    {
+      label: 'Transaction Hash',
+      key: 'transaction_hash',
+    },
+    {
+      label: 'Contract Address',
+      key: 'contract_address',
+    },
+    {
+      label: 'Timestamp',
+      key: 'transaction_time_stamp',
+    },
+    {
+      label: 'Query Reponse',
+      key: 'query_response',
+    },
+    {
+      label: 'HashScan Explorer',
+      key: 'hashscan_explorer',
+    },
+  ];
+};
+
+/**
+ * @dev prepare data object for CSV exporting feature
+ */
+export const prepareCSVData = (transactionList: ITransactionResult[], network: string) => {
+  const queryResponseKeys = [
+    'ownerOf',
+    'tokenURI',
+    'approves',
+    'approves',
+    'balanceOf',
+    'allowances',
+    'ercTokenInfo',
+  ];
+
+  // sort transactionList based on order
+  const sortedTransactionList = transactionList.sort((txA, txB) => {
+    return txA.transactionTimeStamp - txB.transactionTimeStamp;
+  });
+
+  return sortedTransactionList.map((transaction) => {
+    // prepare query responses
+    let queryResponse;
+    queryResponseKeys.forEach((key) => {
+      if ((transaction as any)[key] && transaction.readonly) {
+        queryResponse = JSON.stringify((transaction as any)[key]).replaceAll(',', ';');
+      }
+    });
+
+    return {
+      status: transaction.status,
+      query_response: queryResponse || 'N/A',
+      transaction_type: transaction.transactionType,
+      contract_address: transaction.sessionedContractAddress,
+      reques_type: transaction.readonly ? 'QUERY' : 'TRANSACTION',
+      transaction_hash: transaction.readonly ? 'N/A' : transaction.txHash,
+      transaction_time_stamp: new Date(transaction.transactionTimeStamp).toLocaleString(),
+      hashscan_explorer: transaction.readonly
+        ? 'N/A'
+        : `https://hashscan.io/${network}/transaction/${transaction.txHash}`,
+    };
+  });
 };

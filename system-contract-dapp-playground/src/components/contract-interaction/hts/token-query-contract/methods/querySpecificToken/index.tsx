@@ -21,24 +21,30 @@
 import Cookies from 'js-cookie';
 import { useState, useEffect } from 'react';
 import { Contract, isAddress } from 'ethers';
-import { HEDERA_BRANDING_COLORS } from '@/utils/common/constants';
 import { CommonErrorToast } from '@/components/toast/CommonToast';
 import { Select, useDisclosure, useToast } from '@chakra-ui/react';
-import { handleAPIErrors } from '../../../shared/methods/handleAPIErrors';
-import { queryTokenSpecificInfomation } from '@/api/hedera/tokenQuery-interactions';
-import { usePaginatedTxResults } from '../../../shared/hooks/usePaginatedTxResults';
+import { ITransactionResult } from '@/types/contract-interactions/shared';
+import { handleAPIErrors } from '../../../../../common/methods/handleAPIErrors';
+import { usePaginatedTxResults } from '../../../../../../hooks/usePaginatedTxResults';
 import TokenSpecificInfoModal from '../../../shared/components/TokenSpecificInfoModal';
-import { TransactionResultTable } from '../../../shared/components/TransactionResultTable';
+import { TransactionResultTable } from '../../../../../common/components/TransactionResultTable';
 import { HederaTokenKeyTypes, TRANSACTION_PAGE_SIZE } from '../../../shared/states/commonStates';
-import { IHederaTokenServiceKeyType, TransactionResult } from '@/types/contract-interactions/HTS';
+import { queryTokenSpecificInfomation } from '@/api/hedera/hts-interactions/tokenQuery-interactions';
 import { htsQueryTokenInfoParamFields } from '@/utils/contract-interactions/HTS/token-query/constant';
-import { useUpdateTransactionResultsToLocalStorage } from '../../../shared/hooks/useUpdateLocalStorage';
-import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../shared/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import { useUpdateTransactionResultsToLocalStorage } from '../../../../../../hooks/useUpdateLocalStorage';
+import useFilterTransactionsByContractAddress from '../../../../../../hooks/useFilterTransactionsByContractAddress';
+import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../../../common/methods/handleRetrievingTransactionResultsFromLocalStorage';
 import {
-  SharedExecuteButton,
   SharedFormButton,
+  SharedExecuteButton,
   SharedFormInputField,
 } from '../../../shared/components/ParamInputForm';
+import {
+  CONTRACT_NAMES,
+  HEDERA_BRANDING_COLORS,
+  HEDERA_COMMON_TRANSACTION_TYPE,
+  HEDERA_TRANSACTION_RESULT_STORAGE_KEYS,
+} from '@/utils/common/constants';
 
 interface PageProps {
   baseContract: Contract;
@@ -66,24 +72,22 @@ const QueryTokenSpecificInfomation = ({ baseContract }: PageProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [tokenInfo, setTokenInfo] = useState<any>();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const initialParamValues = { hederaTokenAddress: '' };
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [showTokenInfo, setShowTokenInfo] = useState(false);
   const hederaNetwork = JSON.parse(Cookies.get('_network') as string);
+  const [paramValues, setParamValues] = useState<any>(initialParamValues);
   const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
   const [tokenInfoFromTxResult, setTokenInfoFromTxResult] = useState<any>();
   const [keyType, setKeyType] = useState<IHederaTokenServiceKeyType>('ADMIN');
   const [tokenAddressFromTxResult, setTokenAddressFromTxResult] = useState('');
   const [APIMethods, setAPIMethods] = useState<API_NAMES>('DEFAULT_FREEZE_STATUS');
-  const [transactionResults, setTransactionResults] = useState<TransactionResult[]>([]);
-  const transactionResultStorageKey = 'HEDERA.HTS.TOKEN-QUERY.TOKEN-SPECIFIC-INFO-RESULTS';
-  const [APIMethodsFromTxResult, setAPIMethodsFromTxResult] =
-    useState<API_NAMES>('DEFAULT_FREEZE_STATUS');
-  const [keyTypeFromTxResult, setKeyTypeFromTxResult] =
-    useState<IHederaTokenServiceKeyType>('ADMIN');
-  const initialParamValues = {
-    hederaTokenAddress: '',
-  };
-  const [paramValues, setParamValues] = useState<any>(initialParamValues);
+  const currentContractAddress = Cookies.get(CONTRACT_NAMES.TOKEN_QUERY) as string;
+  const [transactionResults, setTransactionResults] = useState<ITransactionResult[]>([]);
+  const [keyTypeFromTxResult, setKeyTypeFromTxResult] = useState<IHederaTokenServiceKeyType>('ADMIN');
+  const [APIMethodsFromTxResult, setAPIMethodsFromTxResult] = useState<API_NAMES>('DEFAULT_FREEZE_STATUS');
+  const transactionResultStorageKey =
+    HEDERA_TRANSACTION_RESULT_STORAGE_KEYS['TOKEN-QUERY']['TOKEN-SPECIFIC-INFO'];
 
   // prepare events map
   const eventMaps: Record<API_NAMES, EVENT_NAMES> = {
@@ -93,6 +97,15 @@ const QueryTokenSpecificInfomation = ({ baseContract }: PageProps) => {
     TOKEN_EXPIRY: 'TokenExpiryInfo',
     DEFAULT_KYC_STATUS: 'TokenDefaultKycStatus',
     DEFAULT_FREEZE_STATUS: 'TokenDefaultFreezeStatus',
+  };
+
+  const transactionTypeMap = {
+    TOKEN_TYPE: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_TOKEN_TYPE,
+    TOKEN_KEYS: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_TOKEN_KEYS,
+    CUSTOM_FEES: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_CUSTOM_FEES,
+    TOKEN_EXPIRY: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_TOKEN_EXPIRY,
+    DEFAULT_KYC_STATUS: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_DEFAULT_KYC_STATUS,
+    DEFAULT_FREEZE_STATUS: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_DEFAULT_FREEZE_STATUS,
   };
 
   const APIButtonTitles: { API: API_NAMES; apiSwitchTitle: string; executeTitle: any }[] = [
@@ -127,6 +140,12 @@ const QueryTokenSpecificInfomation = ({ baseContract }: PageProps) => {
       executeTitle: 'Query Token Keys',
     },
   ];
+
+  const transactionResultsToShow = useFilterTransactionsByContractAddress(
+    transactionResults,
+    currentContractAddress
+  );
+
   /** @dev retrieve token creation results from localStorage to maintain data on re-renders */
   useEffect(() => {
     handleRetrievingTransactionResultsFromLocalStorage(
@@ -135,13 +154,10 @@ const QueryTokenSpecificInfomation = ({ baseContract }: PageProps) => {
       setCurrentTransactionPage,
       setTransactionResults
     );
-  }, [toaster]);
+  }, [toaster, transactionResultStorageKey]);
 
   // declare a paginatedTransactionResults
-  const paginatedTransactionResults = usePaginatedTxResults(
-    currentTransactionPage,
-    transactionResults
-  );
+  const paginatedTransactionResults = usePaginatedTxResults(currentTransactionPage, transactionResultsToShow);
 
   /** @dev handle form inputs on change */
   const handleInputOnChange = (e: any, param: string) => {
@@ -182,7 +198,10 @@ const QueryTokenSpecificInfomation = ({ baseContract }: PageProps) => {
         setTransactionResults,
         keyTypeCalled: keyType,
         err: tokenInfoResult.err,
+        transactionResultStorageKey,
+        transactionType: transactionTypeMap[API],
         tokenAddress: paramValues.hederaTokenAddress,
+        sessionedContractAddress: currentContractAddress,
         transactionHash: tokenInfoResult.transactionHash,
       });
       return;
@@ -221,12 +240,16 @@ const QueryTokenSpecificInfomation = ({ baseContract }: PageProps) => {
       setTransactionResults((prev) => [
         ...prev,
         {
-          status: 'success',
-          tokenAddress: paramValues.hederaTokenAddress,
-          txHash: tokenInfoResult.transactionHash as string,
-          tokenInfo: cachedTokenInfo,
           APICalled: API,
+          status: 'success',
           keyTypeCalled: keyType,
+          tokenInfo: cachedTokenInfo,
+          transactionResultStorageKey,
+          transactionTimeStamp: Date.now(),
+          transactionType: transactionTypeMap[API],
+          tokenAddress: paramValues.hederaTokenAddress,
+          sessionedContractAddress: currentContractAddress,
+          txHash: tokenInfoResult.transactionHash as string,
         },
       ]);
 
@@ -269,12 +292,8 @@ const QueryTokenSpecificInfomation = ({ baseContract }: PageProps) => {
             paramType={(htsQueryTokenInfoParamFields as any)['hederaTokenAddress'].inputType}
             paramSize={(htsQueryTokenInfoParamFields as any)['hederaTokenAddress'].inputSize}
             explanation={(htsQueryTokenInfoParamFields as any)['hederaTokenAddress'].explanation}
-            paramClassName={
-              (htsQueryTokenInfoParamFields as any)['hederaTokenAddress'].inputClassname
-            }
-            paramPlaceholder={
-              (htsQueryTokenInfoParamFields as any)['hederaTokenAddress'].inputPlaceholder
-            }
+            paramClassName={(htsQueryTokenInfoParamFields as any)['hederaTokenAddress'].inputClassname}
+            paramPlaceholder={(htsQueryTokenInfoParamFields as any)['hederaTokenAddress'].inputPlaceholder}
             paramFocusColor={
               (htsQueryTokenInfoParamFields as any)['hederaTokenAddress'].inputFocusBorderColor
             }
@@ -315,7 +334,7 @@ const QueryTokenSpecificInfomation = ({ baseContract }: PageProps) => {
       </div>
 
       {/* transaction results table */}
-      {transactionResults.length > 0 && (
+      {transactionResultsToShow.length > 0 && (
         <TransactionResultTable
           onOpen={onOpen}
           API="QuerySpecificInfo"

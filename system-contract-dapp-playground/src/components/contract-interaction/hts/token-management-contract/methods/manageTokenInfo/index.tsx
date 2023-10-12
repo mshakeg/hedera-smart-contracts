@@ -25,34 +25,33 @@ import { useToast } from '@chakra-ui/react';
 import TokenExpiryForm from './TokenExpiryForm';
 import { useState, useMemo, useEffect } from 'react';
 import { CommonErrorToast } from '@/components/toast/CommonToast';
-import { handleAPIErrors } from '../../../shared/methods/handleAPIErrors';
-import { useToastSuccessful } from '../../../shared/hooks/useToastSuccessful';
-import { manageTokenInfomation } from '@/api/hedera/tokenManagement-interactions';
-import { usePaginatedTxResults } from '../../../shared/hooks/usePaginatedTxResults';
+import { ITransactionResult } from '@/types/contract-interactions/shared';
+import { handleAPIErrors } from '../../../../../common/methods/handleAPIErrors';
+import { useToastSuccessful } from '../../../../../../hooks/useToastSuccessful';
+import { usePaginatedTxResults } from '../../../../../../hooks/usePaginatedTxResults';
 import { SharedSigningKeysComponent } from '../../../shared/components/SigningKeysForm';
-import { TransactionResultTable } from '../../../shared/components/TransactionResultTable';
+import { TransactionResultTable } from '../../../../../common/components/TransactionResultTable';
 import { HederaTokenKeyTypes, TRANSACTION_PAGE_SIZE } from '../../../shared/states/commonStates';
-import { handleSanitizeHederaFormInputs } from '../../../shared/methods/handleSanitizeFormInputs';
-import { useUpdateTransactionResultsToLocalStorage } from '../../../shared/hooks/useUpdateLocalStorage';
-import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../shared/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import { manageTokenInfomation } from '@/api/hedera/hts-interactions/tokenManagement-interactions';
+import { handleSanitizeHederaFormInputs } from '../../../../../common/methods/handleSanitizeFormInputs';
+import { useUpdateTransactionResultsToLocalStorage } from '../../../../../../hooks/useUpdateLocalStorage';
+import useFilterTransactionsByContractAddress from '../../../../../../hooks/useFilterTransactionsByContractAddress';
+import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../../../common/methods/handleRetrievingTransactionResultsFromLocalStorage';
 import {
-  DEFAULT_HEDERA_TOKEN_INFO_VALUE,
+  CONTRACT_NAMES,
+  HEDERA_COMMON_TRANSACTION_TYPE,
+  HEDERA_TRANSACTION_RESULT_STORAGE_KEYS,
+} from '@/utils/common/constants';
+import {
   DEFAULT_TOKEN_EXIPIRY_VALUE,
   htsUpdateTokenInfoParamFields,
+  DEFAULT_HEDERA_TOKEN_INFO_VALUE,
 } from '@/utils/contract-interactions/HTS/token-management/constant';
 import {
   SharedFormButton,
   SharedFormInputField,
   SharedExecuteButtonWithFee,
 } from '../../../shared/components/ParamInputForm';
-import {
-  CommonKeyObject,
-  TransactionResult,
-  IHederaTokenServiceKeyType,
-  IHederaTokenServiceKeyValueType,
-  IHederaTokenServiceExpiry,
-  IHederaTokenServiceHederaToken,
-} from '@/types/contract-interactions/HTS';
 
 interface PageProps {
   baseContract: Contract;
@@ -68,8 +67,9 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
   const hederaNetwork = JSON.parse(Cookies.get('_network') as string);
   const [APIMethods, setAPIMethods] = useState<API_NAMES>('UPDATE_INFO');
   const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
-  const transactionResultStorageKey = 'HEDERA.HTS.TOKEN-MANAGEMENT.TOKEN-INFO-RESULTS';
-  const [transactionResults, setTransactionResults] = useState<TransactionResult[]>([]);
+  const currentContractAddress = Cookies.get(CONTRACT_NAMES.TOKEN_MANAGE) as string;
+  const [transactionResults, setTransactionResults] = useState<ITransactionResult[]>([]);
+  const transactionResultStorageKey = HEDERA_TRANSACTION_RESULT_STORAGE_KEYS['TOKEN-MANAGE']['TOKEN-INFO'];
   const APIButtonTitles: { API: API_NAMES; apiSwitchTitle: string; executeTitle: string }[] = [
     {
       API: 'UPDATE_INFO',
@@ -79,6 +79,7 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
     { API: 'UPDATE_EXPIRY', apiSwitchTitle: 'Token Exipry', executeTitle: 'Update Token Expiry' },
     { API: 'UPDATE_KEYS', apiSwitchTitle: 'Token Keys', executeTitle: 'Update Token Keys' },
   ];
+
   const tokenInfoFields = useMemo(() => {
     switch (APIMethods) {
       case 'UPDATE_INFO':
@@ -90,6 +91,7 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
         return ['second', 'autoRenewAccount', 'autoRenewPeriod'];
     }
   }, [APIMethods]);
+
   const initialParamValues = {
     name: '',
     memo: '',
@@ -105,6 +107,11 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
     hederaTokenAddress: '',
   };
   const [paramValues, setParamValues] = useState<any>(initialParamValues);
+
+  const transactionResultsToShow = useFilterTransactionsByContractAddress(
+    transactionResults,
+    currentContractAddress
+  );
 
   const HederaTokenKeyValueType: IHederaTokenServiceKeyValueType[] = [
     'inheritAccountKey',
@@ -124,14 +131,20 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
     'PAUSE',
   ] as IHederaTokenServiceKeyType[];
 
+  const transactionTypeMap = {
+    UPDATE_INFO: HEDERA_COMMON_TRANSACTION_TYPE.HTS_FREEZE_TOKEN,
+    UPDATE_EXPIRY: HEDERA_COMMON_TRANSACTION_TYPE.HTS_REVOKE_KYC,
+    UPDATE_KEYS: HEDERA_COMMON_TRANSACTION_TYPE.HTS_UNFREEZE_TOKEN,
+  };
+
   const initialKeyValues = keyTypeArrays.map((keyType) => ({
     keyType: keyType,
     keyValueType: 'inheritAccountKey',
     keyValue: '',
-  })) as CommonKeyObject[];
+  })) as ICommonKeyObject[];
 
   // Keys states
-  const [keys, setKeys] = useState<CommonKeyObject[]>([]); // keeps track of keys array to pass to the API
+  const [keys, setKeys] = useState<ICommonKeyObject[]>([]); // keeps track of keys array to pass to the API
   const [chosenKeys, setChosenKeys] = useState(new Set<IHederaTokenServiceKeyType>()); // keeps track of keyTypes which have already been chosen in the list
   const [keyTypesToShow, setKeyTypesToShow] = useState(new Set(HederaTokenKeyTypes)); // keeps track of the left over keyTypes to show in the drop down
 
@@ -152,13 +165,10 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
       setCurrentTransactionPage,
       setTransactionResults
     );
-  }, [toaster]);
+  }, [toaster, transactionResultStorageKey]);
 
   // declare a paginatedTransactionResults
-  const paginatedTransactionResults = usePaginatedTxResults(
-    currentTransactionPage,
-    transactionResults
-  );
+  const paginatedTransactionResults = usePaginatedTxResults(currentTransactionPage, transactionResultsToShow);
 
   /** @dev handle form inputs on change */
   const handleInputOnChange = (e: any, param: string) => {
@@ -257,7 +267,10 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
         toaster,
         transactionHash,
         setTransactionResults,
+        transactionResultStorageKey,
         tokenAddress: hederaTokenAddress,
+        transactionType: transactionTypeMap[APIMethods],
+        sessionedContractAddress: currentContractAddress,
       });
       return;
     } else {
@@ -266,8 +279,12 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
         ...prev,
         {
           status: 'success',
+          transactionResultStorageKey,
           tokenAddress: hederaTokenAddress,
+          transactionTimeStamp: Date.now(),
           txHash: transactionHash as string,
+          transactionType: transactionTypeMap[APIMethods],
+          sessionedContractAddress: currentContractAddress,
         },
       ]);
 
@@ -298,8 +315,8 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
       <div className="flex flex-col gap-6 justify-center tracking-tight text-white/70">
         {/* notice component */}
         <p className="text-sm whitespace-normal -mb-4">
-          <span className="italic font-bold">*important:</span> Should you choose not to update
-          certain fields, kindly populate the token&apos;s current values.
+          <span className="italic font-bold">*important:</span> Should you choose not to update certain
+          fields, kindly populate the token&apos;s current values.
         </p>
 
         {/* API methods */}
@@ -327,15 +344,9 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
           paramType={(htsUpdateTokenInfoParamFields as any)['hederaTokenAddress'].inputType}
           paramSize={(htsUpdateTokenInfoParamFields as any)['hederaTokenAddress'].inputSize}
           explanation={(htsUpdateTokenInfoParamFields as any)['hederaTokenAddress'].explanation}
-          paramClassName={
-            (htsUpdateTokenInfoParamFields as any)['hederaTokenAddress'].inputClassname
-          }
-          paramPlaceholder={
-            (htsUpdateTokenInfoParamFields as any)['hederaTokenAddress'].inputPlaceholder
-          }
-          paramFocusColor={
-            (htsUpdateTokenInfoParamFields as any)['hederaTokenAddress'].inputFocusBorderColor
-          }
+          paramClassName={(htsUpdateTokenInfoParamFields as any)['hederaTokenAddress'].inputClassname}
+          paramPlaceholder={(htsUpdateTokenInfoParamFields as any)['hederaTokenAddress'].inputPlaceholder}
+          paramFocusColor={(htsUpdateTokenInfoParamFields as any)['hederaTokenAddress'].inputFocusBorderColor}
         />
 
         {/* UPDATE_INFO form */}
@@ -397,7 +408,7 @@ const ManageTokenInfo = ({ baseContract }: PageProps) => {
       </div>
 
       {/* transaction results table */}
-      {transactionResults.length > 0 && (
+      {transactionResultsToShow.length > 0 && (
         <TransactionResultTable
           API="TokenCreate"
           hederaNetwork={hederaNetwork}

@@ -19,24 +19,29 @@
  */
 
 import Cookies from 'js-cookie';
-import { useEffect, useState } from 'react';
 import { useToast } from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
 import { Contract, isAddress } from 'ethers';
-import { HEDERA_BRANDING_COLORS } from '@/utils/common/constants';
 import { CommonErrorToast } from '@/components/toast/CommonToast';
-import { TransactionResult } from '@/types/contract-interactions/HTS';
-import { queryTokenValidity } from '@/api/hedera/tokenQuery-interactions';
-import { handleAPIErrors } from '../../../shared/methods/handleAPIErrors';
+import { ITransactionResult } from '@/types/contract-interactions/shared';
 import { TRANSACTION_PAGE_SIZE } from '../../../shared/states/commonStates';
-import { useToastSuccessful } from '../../../shared/hooks/useToastSuccessful';
-import { usePaginatedTxResults } from '../../../shared/hooks/usePaginatedTxResults';
-import { TransactionResultTable } from '../../../shared/components/TransactionResultTable';
-import { useUpdateTransactionResultsToLocalStorage } from '../../../shared/hooks/useUpdateLocalStorage';
-import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../shared/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import { handleAPIErrors } from '../../../../../common/methods/handleAPIErrors';
+import { useToastSuccessful } from '../../../../../../hooks/useToastSuccessful';
+import { usePaginatedTxResults } from '../../../../../../hooks/usePaginatedTxResults';
+import { TransactionResultTable } from '../../../../../common/components/TransactionResultTable';
+import { queryTokenValidity } from '@/api/hedera/hts-interactions/tokenQuery-interactions';
+import { SharedExecuteButton, SharedFormInputField } from '../../../shared/components/ParamInputForm';
+import { useUpdateTransactionResultsToLocalStorage } from '../../../../../../hooks/useUpdateLocalStorage';
+import useFilterTransactionsByContractAddress from '../../../../../../hooks/useFilterTransactionsByContractAddress';
+import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../../../common/methods/handleRetrievingTransactionResultsFromLocalStorage';
 import {
-  SharedExecuteButton,
-  SharedFormInputField,
-} from '../../../shared/components/ParamInputForm';
+  CONTRACT_NAMES,
+  HEDERA_BRANDING_COLORS,
+  HEDERA_CHAKRA_INPUT_BOX_SIZES,
+  HEDERA_COMMON_TRANSACTION_TYPE,
+  HEDERA_TRANSACTION_RESULT_STORAGE_KEYS,
+  HEDERA_CHAKRA_INPUT_BOX_SHARED_CLASSNAME,
+} from '@/utils/common/constants';
 
 interface PageProps {
   baseContract: Contract;
@@ -51,8 +56,13 @@ const QueryTokenValidity = ({ baseContract }: PageProps) => {
   const [paramValues, setParamValues] = useState(initialParamValues);
   const hederaNetwork = JSON.parse(Cookies.get('_network') as string);
   const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
-  const transactionResultStorageKey = 'HEDERA.HTS.TOKEN-QUERY.TOKEN-VALIDITY-RESULTS';
-  const [transactionResults, setTransactionResults] = useState<TransactionResult[]>([]);
+  const currentContractAddress = Cookies.get(CONTRACT_NAMES.TOKEN_QUERY) as string;
+  const [transactionResults, setTransactionResults] = useState<ITransactionResult[]>([]);
+  const transactionResultStorageKey = HEDERA_TRANSACTION_RESULT_STORAGE_KEYS['TOKEN-QUERY']['TOKEN-VALIDITY'];
+  const transactionResultsToShow = useFilterTransactionsByContractAddress(
+    transactionResults,
+    currentContractAddress
+  );
 
   /** @dev retrieve token creation results from localStorage to maintain data on re-renders */
   useEffect(() => {
@@ -62,13 +72,10 @@ const QueryTokenValidity = ({ baseContract }: PageProps) => {
       setCurrentTransactionPage,
       setTransactionResults
     );
-  }, [toaster]);
+  }, [toaster, transactionResultStorageKey]);
 
   // declare a paginatedTransactionResults
-  const paginatedTransactionResults = usePaginatedTxResults(
-    currentTransactionPage,
-    transactionResults
-  );
+  const paginatedTransactionResults = usePaginatedTxResults(currentTransactionPage, transactionResultsToShow);
 
   /** @dev handle form inputs on change */
   const handleInputOnChange = (e: any, param: string) => {
@@ -105,7 +112,10 @@ const QueryTokenValidity = ({ baseContract }: PageProps) => {
         toaster,
         transactionHash,
         setTransactionResults,
+        transactionResultStorageKey,
         tokenAddress: paramValues.hederaTokenAddress,
+        sessionedContractAddress: currentContractAddress,
+        transactionType: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_IS_TOKEN,
       });
       return;
     } else {
@@ -114,9 +124,13 @@ const QueryTokenValidity = ({ baseContract }: PageProps) => {
         ...prev,
         {
           status: 'success',
+          transactionResultStorageKey,
           isToken: Number(IsToken) === 1,
           txHash: transactionHash as string,
+          transactionTimeStamp: Date.now(),
           tokenAddress: paramValues.hederaTokenAddress,
+          sessionedContractAddress: currentContractAddress,
+          transactionType: HEDERA_COMMON_TRANSACTION_TYPE.HTS_QUERY_IS_TOKEN,
         },
       ]);
 
@@ -150,9 +164,9 @@ const QueryTokenValidity = ({ baseContract }: PageProps) => {
           paramValue={paramValues['hederaTokenAddress']}
           paramKey={'hederaTokenAddress'}
           paramType={'text'}
-          paramSize={'md'}
+          paramSize={HEDERA_CHAKRA_INPUT_BOX_SIZES.medium}
           explanation={'represents the Hedera Token for querying'}
-          paramClassName={'w-full border-white/30'}
+          paramClassName={HEDERA_CHAKRA_INPUT_BOX_SHARED_CLASSNAME}
           paramPlaceholder={'Token address...'}
           paramFocusColor={HEDERA_BRANDING_COLORS.purple}
         />
@@ -167,7 +181,7 @@ const QueryTokenValidity = ({ baseContract }: PageProps) => {
       </div>
 
       {/* transaction results table */}
-      {transactionResults.length > 0 && (
+      {transactionResultsToShow.length > 0 && (
         <TransactionResultTable
           API="QueryValidity"
           hederaNetwork={hederaNetwork}

@@ -22,31 +22,34 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ethers } from 'ethers';
 import { clearCookies } from '@/api/cookies';
-import { NetworkName } from '@/types/common';
-import { HASHSCAN_BASE_URL } from '@/utils/common/constants';
+import { TNetworkName } from '@/types/common';
 import { BiCopy, BiCheckDouble } from 'react-icons/bi';
-import { SkeletonText, useToast } from '@chakra-ui/react';
+import ConfirmModal from '../common/components/ConfirmModal';
+import { clearCachedTransactions } from '@/api/localStorage';
 import { getBalance, getWalletProvider } from '@/api/wallet';
+import { copyContentToClipboard } from '../common/methods/common';
 import { getHederaNativeIDFromEvmAddress } from '@/api/mirror-node';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { CommonErrorToast, NoWalletToast } from '../toast/CommonToast';
+import { SkeletonText, useDisclosure, useToast } from '@chakra-ui/react';
 import { BsChevronDown, BsFillQuestionOctagonFill } from 'react-icons/bs';
+import { HASHSCAN_BASE_URL, HEDERA_COMMON_WALLET_REVERT_REASONS } from '@/utils/common/constants';
 
 interface PageProps {
-  isOpen: boolean;
-  network: NetworkName;
+  network: TNetworkName;
   userAddress: string;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
 }
 
-const WalletPopup = ({ isOpen, setIsOpen, userAddress, network }: PageProps) => {
+const WalletPopup = ({ setIsOpen, userAddress, network }: PageProps) => {
   const toaster = useToast();
   const [isCopied, setIsCopied] = useState({
     accountId: false,
     evmAddress: false,
   });
-  const [hederaAccountId, setHederaAccountId] = useState<String>();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const [accountBalance, setAccountBalance] = useState<String>();
+  const [hederaAccountId, setHederaAccountId] = useState<String>();
   const { walletProvider, err: walletProviderErr } = getWalletProvider();
 
   /**
@@ -69,7 +72,7 @@ const WalletPopup = ({ isOpen, setIsOpen, userAddress, network }: PageProps) => 
         CommonErrorToast({
           toaster,
           title: 'Cannot get account balance',
-          description: "See client's console for more information",
+          description: HEDERA_COMMON_WALLET_REVERT_REASONS.DEFAULT.description,
         });
         return;
       }
@@ -88,7 +91,7 @@ const WalletPopup = ({ isOpen, setIsOpen, userAddress, network }: PageProps) => 
         CommonErrorToast({
           toaster,
           title: 'Cannot get account id',
-          description: "See client's console for more information",
+          description: HEDERA_COMMON_WALLET_REVERT_REASONS.DEFAULT.description,
         });
         return;
       }
@@ -103,11 +106,11 @@ const WalletPopup = ({ isOpen, setIsOpen, userAddress, network }: PageProps) => 
     switch (type) {
       case 'ACCOUNTID':
         setIsCopied((prev) => ({ ...prev, accountId: true }));
-        navigator.clipboard.writeText(hederaAccountId as string);
+        copyContentToClipboard(hederaAccountId as string);
         break;
       default:
         setIsCopied((prev) => ({ ...prev, evmAddress: true }));
-        navigator.clipboard.writeText(userAddress);
+        copyContentToClipboard(userAddress);
     }
     setTimeout(() => {
       setIsCopied({ accountId: false, evmAddress: false });
@@ -118,8 +121,14 @@ const WalletPopup = ({ isOpen, setIsOpen, userAddress, network }: PageProps) => 
    * @dev disconnect user
    */
   const handleDisconnect = async () => {
-    // clear Cookies
+    // close modal
+    onClose();
+
+    // clear Cookies cache
     await clearCookies();
+
+    // clear localStorage cache
+    clearCachedTransactions();
 
     // redirect user to landing page
     setIsOpen(false);
@@ -168,9 +177,7 @@ const WalletPopup = ({ isOpen, setIsOpen, userAddress, network }: PageProps) => 
                 className="flex gap-1 items-center cursor-pointer"
               >
                 <div>
-                  {hederaAccountId || (
-                    <SkeletonText mt="4" w="20" noOfLines={1} skeletonHeight="2" />
-                  )}
+                  {hederaAccountId || <SkeletonText mt="4" w="20" noOfLines={1} skeletonHeight="2" />}
                 </div>
                 {isCopied.accountId ? (
                   <div className="w-[1rem] text-textaccents-light dark:text-textaccents-dark">
@@ -220,9 +227,7 @@ const WalletPopup = ({ isOpen, setIsOpen, userAddress, network }: PageProps) => 
               {/* title */}
               <p>Balance:</p>
               {/* value */}
-              <div>
-                {accountBalance || <SkeletonText mt="4" w="20" noOfLines={1} skeletonHeight="2" />}
-              </div>
+              <div>{accountBalance || <SkeletonText mt="4" w="20" noOfLines={1} skeletonHeight="2" />}</div>
             </div>
           </div>
 
@@ -242,24 +247,44 @@ const WalletPopup = ({ isOpen, setIsOpen, userAddress, network }: PageProps) => 
               </Link>
 
               {/* Activity */}
-              <div className="flex flex-col items-center py-1 bg-button text-white w-full border-[1px] border-white/50 hover:bg-transparent justify-center rounded-xl cursor-pointer">
+              <Link
+                href={'/activity'}
+                className="flex flex-col items-center py-1 bg-button text-white w-full border-[1px] border-white/50 hover:bg-transparent justify-center rounded-xl cursor-pointer"
+              >
                 <Image src={'/assets/icons/list-icon.png'} alt={''} width={15} height={15} />
                 <p className="flex justify-center text-sm items-center gap-1 py-2 leading-[.5rem]">
                   Activity
                 </p>
-              </div>
+              </Link>
 
               {/* Disconnect */}
             </div>
-            <div
-              onClick={handleDisconnect}
+            <button
+              onClick={() => {
+                onOpen();
+              }}
               className="flex flex-col items-center py-1 px-4 bg-button text-white w-full border-[1px] border-white/50 hover:bg-transparent justify-center rounded-xl cursor-pointer"
             >
               <Image src={'/assets/icons/disconnect-icon.png'} alt={''} width={15} height={15} />
               <p className="flex justify-center text-sm items-center gap-1 py-2 leading-[.5rem]">
                 Disconnect
               </p>
-            </div>
+            </button>
+
+            <ConfirmModal
+              isOpen={isOpen}
+              onClose={onClose}
+              modalBody={
+                <p className="text-white/70">
+                  By completing this action, all the deployed smart contract instances and all the
+                  transactions you have made during this session will be permanently erased from the
+                  DApp&apos;s cache, but they will still be accessible through HashScan or other explorer
+                  solutions.
+                </p>
+              }
+              modalHeader={'Sure to disconnect?'}
+              handleAcknowledge={handleDisconnect}
+            />
           </div>
         </div>
       </div>

@@ -21,6 +21,11 @@
 import { Dispatch, SetStateAction } from 'react';
 import { convertCalmelCaseFunctionName } from '@/utils/common/helpers';
 import {
+  HEDERA_BRANDING_COLORS,
+  HEDERA_CHAKRA_TABLE_VARIANTS,
+  HEDERA_CHAKRA_INPUT_BOX_SIZES,
+} from '@/utils/common/constants';
+import {
   Tr,
   Th,
   Td,
@@ -86,19 +91,19 @@ bg-secondary text-white font-styrene w-[30rem]"
         {/* body */}
         <ModalBody>
           <TableContainer className="overflow-x-hidden">
-            <Table variant="simple" size={'sm'}>
+            <Table variant={HEDERA_CHAKRA_TABLE_VARIANTS.simple} size={HEDERA_CHAKRA_INPUT_BOX_SIZES.small}>
               <Tbody>
                 <Tr>
-                  <Th color={'#82ACF9'}>{convertCalmelCaseFunctionName(eventMaps[APIMethods])}</Th>
+                  <Th color={HEDERA_BRANDING_COLORS.violet}>
+                    {convertCalmelCaseFunctionName(eventMaps[APIMethods])}
+                  </Th>
                   {APIMethods === 'GET_APPROVED' && (
                     <Td className="flex justify-end">
                       {`${tokenInfo.slice(0, 6)}...${tokenInfo.slice(-6)}`}
                     </Td>
                   )}
                   {APIMethods === 'IS_APPROVAL' && (
-                    <Td className="flex justify-end">
-                      {JSON.stringify(tokenInfo === 1).toUpperCase()}
-                    </Td>
+                    <Td className="flex justify-end">{JSON.stringify(tokenInfo === 1).toUpperCase()}</Td>
                   )}
                   {APIMethods === 'ALLOWANCE' && <Td className="flex justify-end">{tokenInfo}</Td>}
                 </Tr>

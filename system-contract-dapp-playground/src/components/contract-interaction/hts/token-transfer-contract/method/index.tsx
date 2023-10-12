@@ -20,7 +20,8 @@
 
 import { Contract } from 'ethers';
 import CryptoTransfer from './transferCrypto';
-import { NetworkName } from '@/types/common';
+import TransferSingleToken from './transferSingleToken';
+import TransferMultipleTokens from './transferMultipleTokens';
 
 interface PageProps {
   method: string;
@@ -31,9 +32,9 @@ const HederaTokenTransferMethods = ({ baseContract, method }: PageProps) => {
   return (
     <>
       {method === 'transferFrom' && <>{method}</>}
-      {method === 'transferToken' && <>{method}</>}
-      {method === 'transferTokens' && <>{method}</>}
       {method === 'crypto' && <CryptoTransfer baseContract={baseContract} />}
+      {method === 'transferToken' && <TransferSingleToken baseContract={baseContract} />}
+      {method === 'transferTokens' && <TransferMultipleTokens baseContract={baseContract} />}
     </>
   );
 };

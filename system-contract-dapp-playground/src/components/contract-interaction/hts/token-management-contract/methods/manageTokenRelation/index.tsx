@@ -24,24 +24,31 @@ import { useToast } from '@chakra-ui/react';
 import { useEffect, useMemo, useState } from 'react';
 import { CommonErrorToast } from '@/components/toast/CommonToast';
 import { generatedRandomUniqueKey } from '@/utils/common/helpers';
-import { HEDERA_BRANDING_COLORS } from '@/utils/common/constants';
-import { TransactionResult } from '@/types/contract-interactions/HTS';
-import { handleAPIErrors } from '../../../shared/methods/handleAPIErrors';
+import { ITransactionResult } from '@/types/contract-interactions/shared';
 import { TRANSACTION_PAGE_SIZE } from '../../../shared/states/commonStates';
-import { useToastSuccessful } from '../../../shared/hooks/useToastSuccessful';
-import { manageTokenRelation } from '@/api/hedera/tokenManagement-interactions';
-import { usePaginatedTxResults } from '../../../shared/hooks/usePaginatedTxResults';
+import { useToastSuccessful } from '../../../../../../hooks/useToastSuccessful';
+import { handleAPIErrors } from '../../../../../common/methods/handleAPIErrors';
+import { usePaginatedTxResults } from '../../../../../../hooks/usePaginatedTxResults';
 import TokenAddressesInputForm from '../../../shared/components/TokenAddressesInputForm';
-import { TransactionResultTable } from '../../../shared/components/TransactionResultTable';
-import { handleSanitizeHederaFormInputs } from '../../../shared/methods/handleSanitizeFormInputs';
-import { useUpdateTransactionResultsToLocalStorage } from '../../../shared/hooks/useUpdateLocalStorage';
+import { TransactionResultTable } from '../../../../../common/components/TransactionResultTable';
+import { manageTokenRelation } from '@/api/hedera/hts-interactions/tokenManagement-interactions';
+import { handleSanitizeHederaFormInputs } from '../../../../../common/methods/handleSanitizeFormInputs';
+import { useUpdateTransactionResultsToLocalStorage } from '../../../../../../hooks/useUpdateLocalStorage';
 import { htsTokenRelationParamFields } from '@/utils/contract-interactions/HTS/token-management/constant';
-import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../shared/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import useFilterTransactionsByContractAddress from '../../../../../../hooks/useFilterTransactionsByContractAddress';
+import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../../../common/methods/handleRetrievingTransactionResultsFromLocalStorage';
 import {
-  SharedExecuteButton,
-  SharedExecuteButtonWithFee,
+  CONTRACT_NAMES,
+  HEDERA_BRANDING_COLORS,
+  HEDERA_CHAKRA_INPUT_BOX_SIZES,
+  HEDERA_COMMON_TRANSACTION_TYPE,
+  HEDERA_TRANSACTION_RESULT_STORAGE_KEYS,
+} from '@/utils/common/constants';
+import {
   SharedFormButton,
+  SharedExecuteButton,
   SharedFormInputField,
+  SharedExecuteButtonWithFee,
 } from '../../../shared/components/ParamInputForm';
 
 interface PageProps {
@@ -58,8 +65,10 @@ const ManageTokenRelation = ({ baseContract }: PageProps) => {
   const hederaNetwork = JSON.parse(Cookies.get('_network') as string);
   const [APIMethods, setAPIMethods] = useState<API_NAMES>('REVOKE_KYC');
   const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
-  const [transactionResults, setTransactionResults] = useState<TransactionResult[]>([]);
-  const transactionResultStorageKey = 'HEDERA.HTS.TOKEN-MANAGEMENT.TOKEN-RELATION-RESULTS';
+  const currentContractAddress = Cookies.get(CONTRACT_NAMES.TOKEN_MANAGE) as string;
+  const [transactionResults, setTransactionResults] = useState<ITransactionResult[]>([]);
+  const transactionResultStorageKey =
+    HEDERA_TRANSACTION_RESULT_STORAGE_KEYS['TOKEN-MANAGE']['TOKEN-RELATION'];
   const [isFreezeLoading, setIsFreezeLoading] = useState({
     freezeLoading: false,
     unfreezeLoading: false,
@@ -104,6 +113,18 @@ const ManageTokenRelation = ({ baseContract }: PageProps) => {
     },
   ];
 
+  const transactionResultsToShow = useFilterTransactionsByContractAddress(
+    transactionResults,
+    currentContractAddress
+  );
+
+  const transactionTypeMap = {
+    FREEZE: HEDERA_COMMON_TRANSACTION_TYPE.HTS_FREEZE_TOKEN,
+    REVOKE_KYC: HEDERA_COMMON_TRANSACTION_TYPE.HTS_REVOKE_KYC,
+    UNFREEZE: HEDERA_COMMON_TRANSACTION_TYPE.HTS_UNFREEZE_TOKEN,
+    DISSOCIATE_TOKEN: HEDERA_COMMON_TRANSACTION_TYPE.HTS_DISSOCIATE_TOKEN,
+  };
+
   /** @dev handle adding metadata */
   const handleModifyTokenAddresses = (type: 'ADD' | 'REMOVE', removingFieldKey?: string) => {
     switch (type) {
@@ -115,9 +136,7 @@ const ManageTokenRelation = ({ baseContract }: PageProps) => {
         break;
       case 'REMOVE':
         if (hederaTokenAddresses.length > 1) {
-          setHederaTokenAddresses((prev) =>
-            prev.filter((field) => field.fieldKey !== removingFieldKey)
-          );
+          setHederaTokenAddresses((prev) => prev.filter((field) => field.fieldKey !== removingFieldKey));
         }
     }
   };
@@ -130,13 +149,10 @@ const ManageTokenRelation = ({ baseContract }: PageProps) => {
       setCurrentTransactionPage,
       setTransactionResults
     );
-  }, [toaster]);
+  }, [toaster, transactionResultStorageKey]);
 
   // declare a paginatedTransactionResults
-  const paginatedTransactionResults = usePaginatedTxResults(
-    currentTransactionPage,
-    transactionResults
-  );
+  const paginatedTransactionResults = usePaginatedTxResults(currentTransactionPage, transactionResultsToShow);
 
   /** @dev handle form inputs on change */
   const handleInputOnChange = (e: any, param: string, fieldKey?: string) => {
@@ -210,7 +226,10 @@ const ManageTokenRelation = ({ baseContract }: PageProps) => {
         toaster,
         transactionHash,
         setTransactionResults,
+        transactionResultStorageKey,
+        transactionType: transactionTypeMap[API],
         tokenAddress: paramValues.hederaTokenAddress,
+        sessionedContractAddress: currentContractAddress,
       });
       return;
     } else {
@@ -219,8 +238,12 @@ const ManageTokenRelation = ({ baseContract }: PageProps) => {
         ...prev,
         {
           status: 'success',
-          tokenAddress: paramValues.hederaTokenAddress,
+          transactionResultStorageKey,
+          transactionTimeStamp: Date.now(),
           txHash: transactionHash as string,
+          transactionType: transactionTypeMap[API],
+          tokenAddress: paramValues.hederaTokenAddress,
+          sessionedContractAddress: currentContractAddress,
         },
       ]);
 
@@ -302,14 +325,14 @@ const ManageTokenRelation = ({ baseContract }: PageProps) => {
                 />
                 <SharedFormInputField
                   param={'feeValue'}
-                  paramValue={paramValues.feeValue}
-                  handleInputOnChange={handleInputOnChange}
-                  paramSize={'lg'}
                   paramType={'number'}
                   paramKey={'feeValue'}
+                  paramValue={paramValues.feeValue}
+                  paramPlaceholder={'Gas limit...'}
+                  handleInputOnChange={handleInputOnChange}
                   explanation={'Gas limit for the transaction'}
                   paramClassName={'border-white/30 rounded-xl'}
-                  paramPlaceholder={'Gas limit...'}
+                  paramSize={HEDERA_CHAKRA_INPUT_BOX_SIZES.large}
                   paramFocusColor={HEDERA_BRANDING_COLORS.purple}
                 />
                 <SharedExecuteButton
@@ -339,7 +362,7 @@ const ManageTokenRelation = ({ baseContract }: PageProps) => {
       </div>
 
       {/* transaction results table */}
-      {transactionResults.length > 0 && (
+      {transactionResultsToShow.length > 0 && (
         <TransactionResultTable
           API="TokenCreate"
           hederaNetwork={hederaNetwork}

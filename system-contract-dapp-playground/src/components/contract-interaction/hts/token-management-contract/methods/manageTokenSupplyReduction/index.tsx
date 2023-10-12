@@ -23,22 +23,28 @@ import { Contract } from 'ethers';
 import { useToast } from '@chakra-ui/react';
 import { useState, useMemo, useEffect } from 'react';
 import { CommonErrorToast } from '@/components/toast/CommonToast';
-import { TransactionResult } from '@/types/contract-interactions/HTS';
-import { handleAPIErrors } from '../../../shared/methods/handleAPIErrors';
+import { ITransactionResult } from '@/types/contract-interactions/shared';
 import { TRANSACTION_PAGE_SIZE } from '../../../shared/states/commonStates';
-import { useToastSuccessful } from '../../../shared/hooks/useToastSuccessful';
-import { manageTokenDeduction } from '@/api/hedera/tokenManagement-interactions';
-import { usePaginatedTxResults } from '../../../shared/hooks/usePaginatedTxResults';
-import { TransactionResultTable } from '../../../shared/components/TransactionResultTable';
-import { handleSanitizeHederaFormInputs } from '../../../shared/methods/handleSanitizeFormInputs';
-import { useUpdateTransactionResultsToLocalStorage } from '../../../shared/hooks/useUpdateLocalStorage';
-import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../shared/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import { handleAPIErrors } from '../../../../../common/methods/handleAPIErrors';
+import { useToastSuccessful } from '../../../../../../hooks/useToastSuccessful';
+import { usePaginatedTxResults } from '../../../../../../hooks/usePaginatedTxResults';
+import { TransactionResultTable } from '../../../../../common/components/TransactionResultTable';
+import { manageTokenDeduction } from '@/api/hedera/hts-interactions/tokenManagement-interactions';
+import { handleSanitizeHederaFormInputs } from '../../../../../common/methods/handleSanitizeFormInputs';
+import { useUpdateTransactionResultsToLocalStorage } from '../../../../../../hooks/useUpdateLocalStorage';
+import { htsTokenDeductionParamFields } from '@/utils/contract-interactions/HTS/token-management/constant';
+import useFilterTransactionsByContractAddress from '../../../../../../hooks/useFilterTransactionsByContractAddress';
+import { handleRetrievingTransactionResultsFromLocalStorage } from '../../../../../common/methods/handleRetrievingTransactionResultsFromLocalStorage';
+import {
+  CONTRACT_NAMES,
+  HEDERA_COMMON_TRANSACTION_TYPE,
+  HEDERA_TRANSACTION_RESULT_STORAGE_KEYS,
+} from '@/utils/common/constants';
 import {
   SharedFormButton,
   SharedFormInputField,
   SharedExecuteButtonWithFee,
 } from '../../../shared/components/ParamInputForm';
-import { htsTokenDeductionParamFields } from '@/utils/contract-interactions/HTS/token-management/constant';
 
 interface PageProps {
   baseContract: Contract;
@@ -54,8 +60,10 @@ const ManageTokenDeduction = ({ baseContract }: PageProps) => {
   const hederaNetwork = JSON.parse(Cookies.get('_network') as string);
   const [currentTransactionPage, setCurrentTransactionPage] = useState(1);
   const [APIMethods, setAPIMethods] = useState<API_NAMES>('WIPE_FUNGIBLE');
-  const [transactionResults, setTransactionResults] = useState<TransactionResult[]>([]);
-  const transactionResultStorageKey = 'HEDERA.HTS.TOKEN-MANAGEMENT.TOKEN-REDUCTION-RESULTS';
+  const currentContractAddress = Cookies.get(CONTRACT_NAMES.TOKEN_MANAGE) as string;
+  const [transactionResults, setTransactionResults] = useState<ITransactionResult[]>([]);
+  const transactionResultStorageKey =
+    HEDERA_TRANSACTION_RESULT_STORAGE_KEYS['TOKEN-MANAGE']['TOKEN-REDUCTION'];
   const initialParamValues = {
     amount: '',
     feeValue: '',
@@ -78,6 +86,12 @@ const ManageTokenDeduction = ({ baseContract }: PageProps) => {
     { API: 'BURN', apiSwitchTitle: 'Burn Token', executeTitle: 'Burn Token' },
   ];
 
+  const transactionTypeMap = {
+    BURN: HEDERA_COMMON_TRANSACTION_TYPE.HTS_TOKEN_BURN,
+    WIPE_FUNGIBLE: HEDERA_COMMON_TRANSACTION_TYPE.HTS_WIPE_TOKEN,
+    WIPE_NON_FUNGIBLE: HEDERA_COMMON_TRANSACTION_TYPE.HTS_WIPE_NFT,
+  };
+
   const tokenCommonFields = useMemo(() => {
     if (APIMethods === 'WIPE_FUNGIBLE') {
       return ['hederaTokenAddress', 'accountAddress', 'amount'];
@@ -88,6 +102,11 @@ const ManageTokenDeduction = ({ baseContract }: PageProps) => {
     }
   }, [APIMethods]);
 
+  const transactionResultsToShow = useFilterTransactionsByContractAddress(
+    transactionResults,
+    currentContractAddress
+  );
+
   /** @dev retrieve token creation results from localStorage to maintain data on re-renders */
   useEffect(() => {
     handleRetrievingTransactionResultsFromLocalStorage(
@@ -96,13 +115,10 @@ const ManageTokenDeduction = ({ baseContract }: PageProps) => {
       setCurrentTransactionPage,
       setTransactionResults
     );
-  }, [toaster]);
+  }, [toaster, transactionResultStorageKey]);
 
   // declare a paginatedTransactionResults
-  const paginatedTransactionResults = usePaginatedTxResults(
-    currentTransactionPage,
-    transactionResults
-  );
+  const paginatedTransactionResults = usePaginatedTxResults(currentTransactionPage, transactionResultsToShow);
   /** @dev handle form inputs on change */
   const handleInputOnChange = (e: any, param: string) => {
     setParamValues((prev: any) => ({ ...prev, [param]: e.target.value }));
@@ -153,7 +169,10 @@ const ManageTokenDeduction = ({ baseContract }: PageProps) => {
         toaster,
         transactionHash,
         setTransactionResults,
+        transactionResultStorageKey,
         tokenAddress: hederaTokenAddress,
+        transactionType: transactionTypeMap[API],
+        sessionedContractAddress: currentContractAddress,
       });
       return;
     } else {
@@ -162,8 +181,12 @@ const ManageTokenDeduction = ({ baseContract }: PageProps) => {
         ...prev,
         {
           status: 'success',
+          transactionResultStorageKey,
+          transactionTimeStamp: Date.now(),
           tokenAddress: hederaTokenAddress,
           txHash: transactionHash as string,
+          transactionType: transactionTypeMap[API],
+          sessionedContractAddress: currentContractAddress,
         },
       ]);
 
@@ -246,7 +269,7 @@ const ManageTokenDeduction = ({ baseContract }: PageProps) => {
       </div>
 
       {/* transaction results table */}
-      {transactionResults.length > 0 && (
+      {transactionResultsToShow.length > 0 && (
         <TransactionResultTable
           API="TokenCreate"
           hederaNetwork={hederaNetwork}
