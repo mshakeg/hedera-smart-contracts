@@ -1260,7 +1260,7 @@ contract HtsSystemContractMock is NoDelegateCall, KeyHelper, IHtsSystemContractM
     }
 
     function _doesAccountExist(address account) internal view returns (bool exists) {
-        exists = activeHederaAccount[account] || account.balance > 0 || account.code.length > 0;
+        exists = activeHederaAccount[account] || activeHederaAccount[address(0)] || account.balance > 0 || account.code.length > 0;
     }
 
     // IHederaTokenService public/external state-changing functions:
